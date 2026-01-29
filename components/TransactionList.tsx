@@ -49,7 +49,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, ignored
         </div>
       </div>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-visible">
         <table className="w-full text-left text-sm border-collapse">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
@@ -63,13 +63,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, ignored
           <tbody className="divide-y divide-slate-100">
             {filtered.length > 0 ? filtered.map((t, index) => {
               const isIgnored = ignoredIds.includes(t.id);
-              // Lógica para abrir o menu para cima se for uma das últimas 3 linhas
               const isLastRows = index >= filtered.length - 3 && filtered.length > 3;
 
               return (
                 <tr 
                   key={t.id} 
-                  className={`transition-colors ${isIgnored ? 'bg-slate-50/80 text-slate-400 opacity-60 italic' : 'hover:bg-slate-50/50'}`}
+                  className={`transition-colors relative group ${isIgnored ? 'bg-slate-50/80 text-slate-400 opacity-60 italic' : 'hover:bg-slate-50/50'}`}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-[12px] font-medium">
                     {t.date}

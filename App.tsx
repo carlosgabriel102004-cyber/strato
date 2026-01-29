@@ -9,12 +9,21 @@ import ManualEntryModal from './components/ManualEntryModal';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.EMPTY);
+  
+  // Persistência do Período Selecionado
   const [selectedMonths, setSelectedMonths] = useState<string[]>(() => {
+    const saved = localStorage.getItem('ff_selected_months');
+    if (saved) return JSON.parse(saved);
     const d = new Date();
     return [`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`];
   });
   
-  const [spreadsheetTransactions, setSpreadsheetTransactions] = useState<Record<string, Transaction[]>>({});
+  // Cache de transações de planilhas para carregamento offline/instantâneo
+  const [spreadsheetTransactions, setSpreadsheetTransactions] = useState<Record<string, Transaction[]>>(() => {
+    const saved = localStorage.getItem('ff_sheet_cache');
+    return saved ? JSON.parse(saved) : {};
+  });
+
   const [manualTransactions, setManualTransactions] = useState<Record<string, Transaction[]>>(() => {
     const saved = localStorage.getItem('ff_manual_txs');
     return saved ? JSON.parse(saved) : {};
@@ -25,27 +34,22 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [isSourceManagerOpen, setIsSourceManagerOpen] = useState(false);
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [syncing, setSyncing] = useState(false);
-
   const [monthConfigs, setMonthConfigs] = useState<Record<string, Record<SourceKey, string>>>(() => {
     const saved = localStorage.getItem('ff_month_configs');
     return saved ? JSON.parse(saved) : {};
   });
 
-  useEffect(() => {
-    localStorage.setItem('ff_month_configs', JSON.stringify(monthConfigs));
-  }, [monthConfigs]);
+  const [isSourceManagerOpen, setIsSourceManagerOpen] = useState(false);
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem('ff_manual_txs', JSON.stringify(manualTransactions));
-  }, [manualTransactions]);
-
-  useEffect(() => {
-    localStorage.setItem('ff_ignored_ids', JSON.stringify(ignoredIds));
-  }, [ignoredIds]);
+  // Efeitos de Persistência
+  useEffect(() => { localStorage.setItem('ff_selected_months', JSON.stringify(selectedMonths)); }, [selectedMonths]);
+  useEffect(() => { localStorage.setItem('ff_month_configs', JSON.stringify(monthConfigs)); }, [monthConfigs]);
+  useEffect(() => { localStorage.setItem('ff_manual_txs', JSON.stringify(manualTransactions)); }, [manualTransactions]);
+  useEffect(() => { localStorage.setItem('ff_ignored_ids', JSON.stringify(ignoredIds)); }, [ignoredIds]);
+  useEffect(() => { localStorage.setItem('ff_sheet_cache', JSON.stringify(spreadsheetTransactions)); }, [spreadsheetTransactions]);
 
   const allSelectedTransactions = useMemo(() => {
     let combined: Transaction[] = [];
@@ -57,7 +61,9 @@ const App: React.FC = () => {
     
     return combined.sort((a, b) => {
       const parseDate = (d: string) => {
-        const [day, month, year] = d.split('/');
+        const parts = d.split('/');
+        if (parts.length < 3) return 0;
+        const [day, month, year] = parts;
         return new Date(`${year}-${month}-${day}`).getTime();
       };
       return parseDate(b.date) - parseDate(a.date);
@@ -76,7 +82,7 @@ const App: React.FC = () => {
 
   const parseValue = (valStr: string): number => {
     if (!valStr) return NaN;
-    let clean = valStr.replace(/[R$\s"]/g, '').trim();
+    let clean = valStr.toString().replace(/[R$\s"]/g, '').trim();
     if (clean.includes(',') && clean.includes('.')) {
       clean = clean.replace(/\./g, '').replace(',', '.');
     } else if (clean.includes(',')) {
@@ -88,6 +94,8 @@ const App: React.FC = () => {
   const processCSV = (text: string, source: SourceKey): Transaction[] => {
     const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
     const result: Transaction[] = [];
+    if (lines.length === 0) return [];
+    
     const separator = lines[0].includes(';') ? ';' : ',';
     const hasHeader = isNaN(parseValue(lines[0].split(separator)[1]));
     const startIdx = hasHeader ? 1 : 0;
@@ -118,6 +126,7 @@ const App: React.FC = () => {
   };
 
   const fetchAllData = useCallback(async (configsOverride?: Record<string, Record<SourceKey, string>>) => {
+    if (selectedMonths.length === 0) return;
     setSyncing(true);
     setAppState(AppState.LOADING);
     const targetConfigs = configsOverride || monthConfigs;
@@ -141,7 +150,7 @@ const App: React.FC = () => {
             const text = await response.text();
             monthTxs = [...monthTxs, ...processCSV(text, key)];
           }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error(`Erro ao buscar ${key}:`, err); }
       }
       newSpreadsheetData[mId] = monthTxs;
     }
@@ -156,27 +165,21 @@ const App: React.FC = () => {
     const activeM = selectedMonths[0];
     const newConfigs = { ...monthConfigs, [activeM]: newSources };
     setMonthConfigs(newConfigs);
-    // Dispara a sincronização imediatamente com as novas configs para não depender do estado asíncrono
     fetchAllData(newConfigs);
   };
 
   const handleAddOrEditManual = (tx: Transaction) => {
-    const [d, m, y] = tx.date.split('/');
-    const mId = `${y}-${m}`;
+    const parts = tx.date.split('/');
+    if (parts.length < 3) return;
+    const mId = `${parts[2]}-${parts[1]}`;
 
     setManualTransactions(prev => {
       const monthTxs = prev[mId] || [];
       const exists = monthTxs.find(t => t.id === tx.id);
       if (exists) {
-        return {
-          ...prev,
-          [mId]: monthTxs.map(t => t.id === tx.id ? tx : t)
-        };
+        return { ...prev, [mId]: monthTxs.map(t => t.id === tx.id ? tx : t) };
       }
-      return {
-        ...prev,
-        [mId]: [...monthTxs, tx]
-      };
+      return { ...prev, [mId]: [...monthTxs, tx] };
     });
     setAppState(AppState.READY);
     setEditingTransaction(null);
@@ -206,16 +209,14 @@ const App: React.FC = () => {
               <i className="fas fa-calendar-alt"></i>
             </div>
             <h2 className="text-2xl font-bold text-slate-800">Selecione um período</h2>
-            <p className="text-slate-500 max-w-sm mx-auto">
-              Clique em "Período" no topo para selecionar os meses.
-            </p>
+            <p className="text-slate-500 max-w-sm mx-auto">Use o seletor no topo para visualizar seus dados.</p>
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in duration-500">
             {syncing && (
-               <div className="flex items-center justify-center py-4 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-600 font-medium">
-                  <i className="fas fa-spinner fa-spin mr-3"></i>
-                  Sincronizando dados dos meses selecionados...
+               <div className="flex items-center justify-center py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-600 text-sm font-bold shadow-sm">
+                  <i className="fas fa-circle-notch fa-spin mr-3"></i>
+                  Sincronizando planilhas remotas...
                </div>
             )}
             <Dashboard transactions={activeTransactions} />
@@ -232,7 +233,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {isSourceManagerOpen && (
+      {isSourceManagerOpen && selectedMonths.length > 0 && (
         <SourceManager 
           onClose={() => setIsSourceManagerOpen(false)} 
           currentSources={monthConfigs[selectedMonths[0]] || { manual: '' } as any}
