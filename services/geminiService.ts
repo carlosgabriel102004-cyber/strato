@@ -2,10 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, AIInsights } from "../types";
 
-// Initialize the Google GenAI SDK with the API key from environment variables.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Função para obter a instância do AI de forma segura para não quebrar o app no carregamento
+const getAI = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+};
 
 export const analyzeTransactions = async (transactions: Transaction[]): Promise<AIInsights> => {
+  const ai = getAI();
+  if (!ai) {
+    throw new Error("API Key não configurada. Verifique o ambiente.");
+  }
+
   const transactionData = transactions.map(t => ({
     date: t.date,
     desc: t.description,
@@ -54,7 +63,6 @@ export const analyzeTransactions = async (transactions: Transaction[]): Promise<
     }
   });
 
-  // Extract text content directly from the response object
   try {
     const text = response.text || '{}';
     return JSON.parse(text) as AIInsights;

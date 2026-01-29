@@ -10,33 +10,46 @@ import ManualEntryModal from './components/ManualEntryModal';
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.EMPTY);
   
-  // Persistência do Período Selecionado
+  // 1. Persistência do Período Selecionado
   const [selectedMonths, setSelectedMonths] = useState<string[]>(() => {
-    const saved = localStorage.getItem('ff_selected_months');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('ff_selected_months');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
     const d = new Date();
     return [`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`];
   });
   
-  // Cache de transações de planilhas para carregamento offline/instantâneo
+  // 2. Cache de transações (Planilhas remotas)
   const [spreadsheetTransactions, setSpreadsheetTransactions] = useState<Record<string, Transaction[]>>(() => {
-    const saved = localStorage.getItem('ff_sheet_cache');
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem('ff_sheet_cache');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
   });
 
+  // 3. Transações Manuais
   const [manualTransactions, setManualTransactions] = useState<Record<string, Transaction[]>>(() => {
-    const saved = localStorage.getItem('ff_manual_txs');
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem('ff_manual_txs');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
   });
 
+  // 4. IDs Ignorados
   const [ignoredIds, setIgnoredIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('ff_ignored_ids');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('ff_ignored_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
+  // 5. Configurações de links por mês
   const [monthConfigs, setMonthConfigs] = useState<Record<string, Record<SourceKey, string>>>(() => {
-    const saved = localStorage.getItem('ff_month_configs');
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem('ff_month_configs');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
   });
 
   const [isSourceManagerOpen, setIsSourceManagerOpen] = useState(false);
@@ -44,7 +57,7 @@ const App: React.FC = () => {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [syncing, setSyncing] = useState(false);
 
-  // Efeitos de Persistência
+  // Efeitos de Gravação (Salvamento Automático)
   useEffect(() => { localStorage.setItem('ff_selected_months', JSON.stringify(selectedMonths)); }, [selectedMonths]);
   useEffect(() => { localStorage.setItem('ff_month_configs', JSON.stringify(monthConfigs)); }, [monthConfigs]);
   useEffect(() => { localStorage.setItem('ff_manual_txs', JSON.stringify(manualTransactions)); }, [manualTransactions]);
@@ -80,8 +93,8 @@ const App: React.FC = () => {
     );
   };
 
-  const parseValue = (valStr: string): number => {
-    if (!valStr) return NaN;
+  const parseValue = (valStr: string | number): number => {
+    if (valStr === null || valStr === undefined) return NaN;
     let clean = valStr.toString().replace(/[R$\s"]/g, '').trim();
     if (clean.includes(',') && clean.includes('.')) {
       clean = clean.replace(/\./g, '').replace(',', '.');
