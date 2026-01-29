@@ -68,12 +68,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, ignored
               return (
                 <tr 
                   key={t.id} 
-                  className={`transition-colors relative group ${isIgnored ? 'bg-slate-50/80 text-slate-400 opacity-60 italic' : 'hover:bg-slate-50/50'}`}
+                  className={`transition-colors relative group ${isIgnored ? 'bg-slate-50/40 italic' : 'hover:bg-slate-50/50'}`}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-[12px] font-medium">
+                  <td className={`px-6 py-4 whitespace-nowrap text-[12px] font-medium ${isIgnored ? 'text-slate-400 opacity-50' : 'text-slate-600'}`}>
                     {t.date}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className={`px-6 py-4 whitespace-nowrap ${isIgnored ? 'opacity-40' : ''}`}>
                     <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter shadow-sm border ${
                       isIgnored 
                         ? 'bg-slate-100 text-slate-400 border-slate-200' 
@@ -86,25 +86,26 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, ignored
                       {t.source === 'manual' ? t.manualSourceLabel : SOURCE_LABELS[t.source]}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-medium max-w-xs truncate text-[13px] text-slate-700">
-                    <span className={isIgnored ? 'line-through' : ''}>{t.description}</span>
+                  <td className={`px-6 py-4 font-medium max-w-xs truncate text-[13px] ${isIgnored ? 'text-slate-400 line-through opacity-50' : 'text-slate-700'}`}>
+                    {t.description}
                   </td>
-                  <td className={`px-6 py-4 text-right font-bold text-[13px] ${isIgnored ? 'text-slate-400 line-through' : t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  <td className={`px-6 py-4 text-right font-bold text-[13px] ${isIgnored ? 'text-slate-300 line-through' : t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {t.type === 'income' && !isIgnored ? '+' : ''} {formatCurrency(t.amount)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="relative inline-block text-left">
                       <button 
                         onClick={() => setOpenMenuId(openMenuId === t.id ? null : t.id)}
-                        className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 transition-all focus:outline-none"
+                        className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 transition-all focus:outline-none opacity-100"
                       >
                         <i className="fas fa-ellipsis-v"></i>
                       </button>
                       
                       {openMenuId === t.id && (
                         <>
+                          {/* O backdrop e o menu agora estão fora de qualquer container com opacidade reduzida */}
                           <div className="fixed inset-0 z-[60]" onClick={() => setOpenMenuId(null)}></div>
-                          <div className={`absolute right-0 w-48 bg-white border border-slate-200 rounded-xl shadow-2xl z-[70] py-2 animate-in fade-in zoom-in-95 duration-150 ${isLastRows ? 'bottom-full mb-2' : 'mt-2'}`}>
+                          <div className={`absolute right-0 w-48 bg-white border border-slate-200 rounded-xl shadow-2xl z-[70] py-2 animate-in fade-in zoom-in-95 duration-150 opacity-100 ring-1 ring-black/5 ${isLastRows ? 'bottom-full mb-2' : 'mt-2'}`}>
                             <button 
                               onClick={() => {
                                 onEdit(t);
