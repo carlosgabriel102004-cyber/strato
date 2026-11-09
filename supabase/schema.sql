@@ -127,3 +127,28 @@ revoke execute on function public.claim_imported_rows() from public, anon, authe
 create trigger on_auth_user_created_claim
   after insert on auth.users
   for each row execute function public.claim_imported_rows();
+
+-- Sign-ups restricted to an allowlist (existing accounts keep signing in).
+-- To allow someone: insert into private.signup_allowlist (email) values ('pessoa@gmail.com');
+create table private.signup_allowlist (email text primary key);
+alter table private.signup_allowlist enable row level security;
+insert into private.signup_allowlist (email) values ('carlosgabriel10.2004@gmail.com');
+
+create or replace function public.enforce_signup_allowlist()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not exists (select 1 from private.signup_allowlist a where lower(a.email) = lower(new.email)) then
+    raise exception 'Cadastro de novas contas desativado no Strato';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.enforce_signup_allowlist() from public, anon, authenticated;
+
+create trigger before_auth_user_created_allowlist
+  before insert on auth.users
+  for each row execute function public.enforce_signup_allowlist();

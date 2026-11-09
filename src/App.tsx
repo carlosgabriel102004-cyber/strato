@@ -399,6 +399,24 @@ export function App() {
     }
   }, []);
 
+  // Errors from the Google/Supabase redirect come back in the URL (e.g. sign-ups blocked)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const description = params.get('error_description') || hashParams.get('error_description');
+    if (!description) return;
+    const blocked = /saving new user|desativado/i.test(description);
+    setAuthError({
+      code: 'signup-blocked',
+      title: blocked ? 'Esta conta não tem acesso ao Strato' : 'Não foi possível entrar',
+      message: description,
+      solution: blocked
+        ? 'O cadastro de novas contas está desativado. Entre com a conta Google autorizada.'
+        : description,
+    });
+    window.history.replaceState(null, '', window.location.pathname);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = initAuth((user) => {
       setGoogleUser(user);
