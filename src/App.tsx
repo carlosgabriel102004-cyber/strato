@@ -52,6 +52,21 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   return fallback;
 }
 
+const MONTH_INDEX_PT: Record<string, number> = {
+  janeiro: 0, fevereiro: 1, 'março': 2, marco: 2, abril: 3, maio: 4, junho: 5,
+  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
+};
+
+// "Novembro 2026" -> true when that month is after the current calendar month
+function isMonthAfterCurrent(label: string): boolean {
+  const [name, yearText] = label.trim().toLowerCase().split(/\s+/);
+  const month = MONTH_INDEX_PT[name];
+  const year = Number(yearText);
+  if (month === undefined || !Number.isFinite(year)) return false;
+  const now = new Date();
+  return year * 12 + month > now.getFullYear() * 12 + now.getMonth();
+}
+
 const FINANCE_CACHE_KEYS = [
   'strato_transactions', 'strato_months_data', 'strato_credit_cards', 'strato_investments',
   'strato_debtors', 'strato_subscriptions', 'strato_spreadsheets',
@@ -299,7 +314,9 @@ export function App() {
                 accountDetailsRows: allRows,
                 accountColumnsMeta: accountCols,
                 accountBalances: r.balances,
-                isProjected: mKey.toLowerCase().includes('setembro 2026') ? false : !!r.isProjected,
+                // Months up to today are real (income/expenses come from transactions);
+                // only months after the current one are projections.
+                isProjected: isMonthAfterCurrent(mKey),
               };
             });
           } else {
