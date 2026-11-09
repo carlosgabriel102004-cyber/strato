@@ -107,37 +107,31 @@ export const SHEETS_CONFIG = [
     id: 'sheet-extrato',
     type: 'extrato',
     title: 'Extrato Bancário',
-    url: 'https://docs.google.com/spreadsheets/d/1X2z-2WEBUwn7mXRYa7oiJhh7rgdCZ6aiYXk8HArhG-M/export?format=csv&gid=0',
   },
   {
     id: 'sheet-cartoes',
     type: 'cartoes',
     title: 'Cartões & Fechamentos',
-    url: 'https://docs.google.com/spreadsheets/d/1X2z-2WEBUwn7mXRYa7oiJhh7rgdCZ6aiYXk8HArhG-M/export?format=csv&gid=66211996',
   },
   {
     id: 'sheet-assinaturas',
     type: 'assinaturas',
     title: 'Assinaturas Fixas',
-    url: 'https://docs.google.com/spreadsheets/d/1X2z-2WEBUwn7mXRYa7oiJhh7rgdCZ6aiYXk8HArhG-M/export?format=csv&gid=1972460113',
   },
   {
     id: 'sheet-totais',
     type: 'total_mes',
     title: 'Total Mensal do Saldo das Contas',
-    url: 'https://docs.google.com/spreadsheets/d/1Y2hEw_g4tPKK9dWP5LDgTqKzsExSAZcoQ5ZvZunP9x4/export?format=csv&gid=1828466385',
   },
   {
     id: 'sheet-devedores',
     type: 'devedores',
     title: 'Registro de Devedores',
-    url: 'https://docs.google.com/spreadsheets/d/1iSvoywDpT7uq8yJH4RGBPw9U8JtC9AkRST7JZMwDQXc/export?format=csv&gid=619733660',
   },
   {
     id: 'sheet-investimentos',
     type: 'investimentos',
     title: 'Investimentos',
-    url: 'https://docs.google.com/spreadsheets/d/1fv-MsaKURTBGIB8a3UWfLNKa5Yx6AfHXWTTYPZ1iB3c/export?format=csv&gid=0',
   },
 ];
 
@@ -333,12 +327,20 @@ export function calculateEffectiveInvoiceDate(
   };
 }
 
-export async function parseAndFetchAllSheets(authHeader?: string) {
-  const customHeaders: Record<string, string> = {};
-  if (authHeader) {
-    customHeaders['Authorization'] = authHeader;
-  }
+export type SheetRowsById = Partial<Record<string, string[][]>>;
 
+export interface BuildFinanceDataOptions {
+  /** Commercial USD/BRL rate. Falls back to K1 of the investments rows, then 5.14. */
+  usdRate?: number;
+  /** Label used in the "sheets" status list (e.g. 'Sincronizado via Supabase'). */
+  sourceMessage?: string;
+}
+
+/**
+ * Turns sheet-shaped rows (header row + data rows, same column layout as the
+ * original Google Sheets tabs) into the data structure the app consumes.
+ */
+export function buildFinanceData(rowsById: SheetRowsById, options: BuildFinanceDataOptions = {}) {
   const fetchResults: any[] = [];
   let parsedInvestments: any[] = [];
   let parsedExtratoTransactions: any[] = [];
@@ -350,59 +352,7 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
   let liveTotalIncome = 0;
   let liveTotalExpenses = 0;
 
-  // Fetch real-time USD rate from Google Sheets 'Cotações atuais'!K1 or fallback
-  let usdRateCommercial = 5.14;
-  try {
-    const sheetQuoteUrls = [
-      'https://docs.google.com/spreadsheets/d/1fv-MsaKURTBGIB8a3UWfLNKa5Yx6AfHXWTTYPZ1iB3c/gviz/tq?tqx=out:csv&sheet=Cota%C3%A7%C3%B5es%20atuais',
-      'https://docs.google.com/spreadsheets/d/1fv-MsaKURTBGIB8a3UWfLNKa5Yx6AfHXWTTYPZ1iB3c/export?format=csv&sheet=Cota%C3%A7%C3%B5es%20atuais'
-    ];
-
-    for (const url of sheetQuoteUrls) {
-      const rateResp = await fetch(url, { headers: customHeaders });
-      if (rateResp.ok) {
-        const csvText = await rateResp.text();
-        const rows = parseCsvToRows(csvText);
-        if (rows.length > 0 && rows[0] && rows[0].length >= 11) {
-          const val = parseCleanNumber(rows[0][10]); // Cell K1 is index 10
-          if (val > 3 && val < 10) {
-            usdRateCommercial = val;
-            break;
-          }
-        }
-        for (const row of rows) {
-          for (const cell of row) {
-            const parsed = parseCleanNumber(cell);
-            if (parsed >= 4.5 && parsed <= 7.0) {
-              usdRateCommercial = parsed;
-              break;
-            }
-          }
-          if (usdRateCommercial !== 5.14) break;
-        }
-      }
-    }
-  } catch (sheetQuoteErr) {
-    console.warn('Could not fetch quote from Cotações atuais sheet tab:', sheetQuoteErr);
-  }
-
-  if (usdRateCommercial === 5.14) {
-    try {
-      const rateResp = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
-      if (rateResp.ok) {
-        const rateData = await rateResp.json();
-        if (rateData && rateData.USDBRL && rateData.USDBRL.bid) {
-          const parsedRate = parseFloat(rateData.USDBRL.bid);
-          if (parsedRate > 3 && parsedRate < 10) {
-            usdRateCommercial = parsedRate;
-          }
-        }
-      }
-    } catch {
-      // Keep default 5.14 rate if offline
-    }
-  }
-
+  let usdRateCommercial = options.usdRate && options.usdRate > 3 && options.usdRate < 10 ? options.usdRate : 5.14;
   const repatriationFeePercent = 1.8;
   let netUsdRate = usdRateCommercial * (1 - repatriationFeePercent / 100);
 
@@ -410,69 +360,13 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
 
   for (const sheet of SHEETS_CONFIG) {
     try {
-      let csvText = '';
-      let fetchSuccess = false;
-
-      const cacheBustUrl = (u: string) => {
-        const sep = u.includes('?') ? '&' : '?';
-        return `${u}${sep}_t=${Date.now()}`;
-      };
-
-      // Primary fetch try
-      try {
-        const response = await fetch(cacheBustUrl(sheet.url), { headers: customHeaders, cache: 'no-store' });
-        if (response.status === 200) {
-          csvText = await response.text();
-          fetchSuccess = true;
-        }
-      } catch (err) {
-        console.warn(`Direct fetch failed for ${sheet.id}, trying gviz/cors proxies`, err);
-      }
-
-      // Secondary fallback if primary direct fetch failed or CORS blocked
-      if (!fetchSuccess) {
-        const gvizUrl = sheet.url.replace('/export?format=csv', '/gviz/tq?tqx=out:csv');
-        try {
-          const resp = await fetch(cacheBustUrl(gvizUrl), { headers: customHeaders, cache: 'no-store' });
-          if (resp.ok) {
-            csvText = await resp.text();
-            fetchSuccess = true;
-          }
-        } catch {
-          // Tertiary fallback via public CORS proxy
-          try {
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cacheBustUrl(sheet.url))}`;
-            const resp = await fetch(proxyUrl, { cache: 'no-store' });
-            if (resp.ok) {
-              csvText = await resp.text();
-              fetchSuccess = true;
-            }
-          } catch {
-            // Unsuccessful
-          }
-        }
-      }
-
-      if (fetchSuccess && csvText) {
-        const trimmed = csvText.trim();
-        const isHtmlRedirect =
-          trimmed.startsWith('<') ||
-          trimmed.includes('<!DOCTYPE html>') ||
-          trimmed.includes('accounts.google.com') ||
-          trimmed.includes('Sign in');
-
-        if (isHtmlRedirect) {
-          fetchResults.push({
-            ...sheet,
-            status: 'pendente',
-            message: 'Planilha privada. Faça login no Google.',
-            httpCode: 401,
-          });
+      const rows = rowsById[sheet.id];
+      if (!rows) continue;
+      {
+        if (rows.length < 2) {
+          fetchResults.push({ ...sheet, status: 'conectado', message: options.sourceMessage || 'Sincronizado', linesCount: 0, httpCode: 200 });
           continue;
         }
-
-        const rows = parseCsvToRows(csvText);
-        if (rows.length < 2) continue;
 
         const dataRows = rows.slice(1);
 
@@ -513,8 +407,11 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
             }
 
             const descLower = description.toLowerCase();
-            let category = 'Geral';
-            if (descLower.includes('salario') || descLower.includes('salário') || descLower.includes('comissão') || descLower.includes('payt')) {
+            const explicitCategory = (cols[6] || '').trim();
+            let category = explicitCategory || 'Geral';
+            if (explicitCategory) {
+              // keep category chosen by the user
+            } else if (descLower.includes('salario') || descLower.includes('salário') || descLower.includes('comissão') || descLower.includes('payt')) {
               category = 'Salário & Renda';
             } else if (descLower.includes('gasolina') || descLower.includes('uber') || descLower.includes('pedagio') || descLower.includes('pedágio')) {
               category = 'Transporte';
@@ -529,7 +426,7 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
             }
 
             parsedExtratoTransactions.push({
-              id: `tx-sheet-${index}`,
+              id: cols[7] || `tx-sheet-${index}`,
               date: isoDate,
               description,
               category,
@@ -538,7 +435,7 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
               account,
               paymentMethod,
               invoiceDueDateStr: explicitDueDateStr,
-              sourceSheet: 'Google Sheets (Extrato)',
+              sourceSheet: 'Banco de dados',
               status: 'concluido',
             });
           });
@@ -564,7 +461,7 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
             const limit = parseCleanNumber(cols[cardLimitColumn] || '');
 
             parsedCards.push({
-              id: `card-sheet-${index}`,
+              id: cols[4] || `card-sheet-${index}`,
               name,
               bank: /nubank/i.test(name) ? 'Nubank' : /picpay/i.test(name) ? 'PicPay' : /bradesco/i.test(name) ? 'Bradesco' : /amazon/i.test(name) ? 'Amazon' : 'Cartão',
               closingDay,
@@ -588,12 +485,12 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
             const renewalDay = parseInt(renewalDayStr.replace(/\D/g, '') || '1', 10);
 
             parsedSubscriptions.push({
-              id: `sub-sheet-${index}`,
+              id: cols[5] || `sub-sheet-${index}`,
               status: isActive ? 'ativa' : 'pausada',
               serviceName,
               category: 'Recorrentes & Fixos',
               monthlyPrice,
-              personalMonthlyPrice: /meli\s*\+/i.test(serviceName) ? 25 : undefined,
+              personalMonthlyPrice: cols[6] ? parseCleanNumber(cols[6]) : undefined,
               paymentCard,
               renewalDay,
               active: isActive,
@@ -811,7 +708,7 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
             }
 
             parsedDebtors.push({
-              id: `debtor-sheet-${index}`,
+              id: cols[7] || `debtor-sheet-${index}`,
               borrowerName,
               description,
               transactionAmount,
@@ -833,7 +730,7 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
         if (sheet.id === 'sheet-investimentos') {
           if (rows.length > 0 && rows[0] && rows[0][10]) {
             const k1Rate = parseCleanNumber(rows[0][10]);
-            if (k1Rate > 0) {
+            if (k1Rate > 0 && !options.usdRate) {
               usdRateCommercial = k1Rate;
               netUsdRate = usdRateCommercial * (1 - repatriationFeePercent / 100);
             }
@@ -862,7 +759,7 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
             const category = rawClass.toUpperCase() === 'REIT' || rawClass.toUpperCase() === 'ETF' || rawClass.toUpperCase() === 'STOCK' ? 'Internacional' : 'Ações BR';
 
             parsedInvestments.push({
-              id: `inv-sheet-${index}`,
+              id: cols[11] || `inv-sheet-${index}`,
               ticker,
               companyName: name,
               name,
@@ -887,23 +784,16 @@ export async function parseAndFetchAllSheets(authHeader?: string) {
         fetchResults.push({
           ...sheet,
           status: 'conectado',
-          message: 'Sincronizado via Google Public CSV API',
+          message: options.sourceMessage || 'Sincronizado',
           linesCount: dataRows.length,
           httpCode: 200,
-        });
-      } else {
-        fetchResults.push({
-          ...sheet,
-          status: 'erro',
-          message: 'Falha ao baixar dados da planilha. Verifique permissões.',
-          httpCode: 400,
         });
       }
     } catch (sheetErr: any) {
       fetchResults.push({
         ...sheet,
         status: 'erro',
-        message: sheetErr.message || 'Falha ao conectar com Google Sheets',
+        message: sheetErr.message || 'Falha ao processar os dados',
         httpCode: 500,
       });
     }

@@ -196,3 +196,10 @@ export interface UserProfile {
   photoURL: string | null;
   isSimulated?: boolean;
 }
+
+export interface NewRecurringCharge {
+  serviceName: string;
+  monthlyPrice: number;
+  paymentMethod: string;
+  renewalDay: number;
+}

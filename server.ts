@@ -2,8 +2,7 @@ import express from 'express';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
-import { parseAndFetchAllSheets } from './src/utils/sheetParser';
-import recurringSubscriptionsHandler from './api/subscriptions';
+import quotesHandler from './api/quotes';
 
 async function startServer() {
   const app = express();
@@ -11,20 +10,8 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API endpoint to fetch and parse live Google Sheets
-  app.get('/api/fetch-sheets', async (req, res) => {
-    try {
-      const authHeader = req.headers.authorization || (req.headers.Authorization as string);
-      const data = await parseAndFetchAllSheets(authHeader);
-      res.setHeader('Content-Type', 'application/json');
-      return res.json(data);
-    } catch (err: any) {
-      console.error('Error fetching sheets:', err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  app.post('/api/subscriptions', recurringSubscriptionsHandler);
+  // Live prices (GOOGLEFINANCE) from the quotes sheet. Financial data itself lives in Supabase.
+  app.get('/api/quotes', quotesHandler);
 
   // Smart fallback generator for when Gemini is rate-limited or unavailable
   function generateSmartFallback(payload: any) {

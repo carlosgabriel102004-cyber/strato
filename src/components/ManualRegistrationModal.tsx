@@ -6,8 +6,10 @@ import { CustomSelect } from './CustomSelect';
 interface ManualRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   selectedMonth: string;
+  accountOptions?: string[];
+  paymentOptions?: string[];
 }
 
 export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = ({
@@ -15,6 +17,8 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
   onClose,
   onAddTransaction,
   selectedMonth,
+  accountOptions = [],
+  paymentOptions = ['PIX'],
 }) => {
   const [description, setDescription] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
@@ -22,47 +26,52 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
   const [category, setCategory] = useState('Alimentação');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Pix Itaú');
-  const [targetSheet, setTargetSheet] = useState('Planilha_Extrato_Bancario.xlsx');
+  const [paymentMethod, setPaymentMethod] = useState('PIX');
+  const [account, setAccount] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFloat(amount.replace(',', '.'));
     if (!description || isNaN(numAmount) || numAmount <= 0) return;
 
     setIsSubmitting(true);
-
-    setTimeout(() => {
-      onAddTransaction({
+    setSubmitError(null);
+    try {
+      await onAddTransaction({
         date,
         description,
         category,
         amount: numAmount,
         type,
         paymentMethod,
+        account: account.trim() || undefined,
         invoiceDueDateStr: dueDate ? dueDate : undefined,
-        sourceSheet: targetSheet,
+        sourceSheet: 'Supabase',
         status: 'concluido',
         notes,
       });
-
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Não foi possível salvar o lançamento.');
       setIsSubmitting(false);
-      setShowSuccessToast(true);
+      return;
+    }
 
-      setTimeout(() => {
-        setShowSuccessToast(false);
-        onClose();
-        // reset form
-        setDescription('');
-        setAmount('');
-        setNotes('');
-      }, 1200);
-    }, 400);
+    setIsSubmitting(false);
+    setShowSuccessToast(true);
+    setTimeout(() => {
+      setShowSuccessToast(false);
+      onClose();
+      // reset form
+      setDescription('');
+      setAmount('');
+      setNotes('');
+    }, 1200);
   };
 
   return (
@@ -98,7 +107,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
             </div>
             <h4 className="text-lg font-bold text-[#11310C]">Lançamento Registrado!</h4>
             <p className="text-xs text-[#11310C]/70 max-w-xs">
-              Sua planilha <span className="font-semibold text-[#11310C]">{targetSheet}</span> foi atualizada com sucesso.
+              Lançamento salvo no banco de dados.
             </p>
           </div>
         ) : (
@@ -240,7 +249,8 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                 </label>
                 <input
                   type="text"
-                  placeholder="Pix Itaú, Visa Infinite..."
+                  list="strato-payment-options"
+                  placeholder="PIX, Cartão Nubank..."
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-medium text-[#11310C]"
@@ -250,36 +260,41 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
               <div>
                 <label className="block text-[11px] font-bold text-[#11310C]/70 uppercase mb-1 flex items-center gap-1">
                   <FileSpreadsheet className="w-3.5 h-3.5 text-[#C4C240]" />
-                  Planilha Alvo
+                  Conta
                 </label>
-                <CustomSelect
-                  value={targetSheet}
-                  onChange={setTargetSheet}
-                  className="w-full"
-                  buttonClassName="w-full py-2.5 bg-white/90"
-                  options={[
-                    'Planilha_Extrato_Bancario.xlsx',
-                    'Planilha_Cartoes_Agosto.xlsx',
-                    'Planilha_Investimentos.xlsx',
-                    'Planilha_Balanco_Total.xlsx',
-                  ]}
+                <input
+                  type="text"
+                  list="strato-account-options"
+                  placeholder="Nubank PJ, Picpay PJ..."
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-medium text-[#11310C]"
                 />
+                <datalist id="strato-account-options">
+                  {accountOptions.map((option) => <option key={option} value={option} />)}
+                </datalist>
+                <datalist id="strato-payment-options">
+                  {paymentOptions.map((option) => <option key={option} value={option} />)}
+                </datalist>
               </div>
             </div>
 
             {/* Submit CTA */}
             <div className="pt-3">
+              {submitError && (
+                <p className="mb-2 text-[11px] font-semibold text-[#E8402A]">{submitError}</p>
+              )}
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-3.5 rounded-2xl liquid-button font-extrabold text-xs text-[#11310C] flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
-                  <span>Sincronizando com Planilha...</span>
+                  <span>Salvando...</span>
                 ) : (
                   <>
                     <FileSpreadsheet className="w-4 h-4 text-[#11310C]" />
-                    <span>Salvar Registro na Planilha</span>
+                    <span>Salvar Lançamento</span>
                   </>
                 )}
               </button>

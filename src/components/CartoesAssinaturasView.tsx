@@ -26,7 +26,7 @@ import {
 import { CreditCardSheet, Subscription, SubscriptionMonthPayment } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { getSubscriptionPaymentKey } from '../utils/subscriptions';
-import { NewRecurringCharge } from '../utils/sheetWriter';
+import { NewRecurringCharge } from '../types';
 
 const getServiceIcon = (serviceName: string, category?: string) => {
   const name = (serviceName || '').toLowerCase();

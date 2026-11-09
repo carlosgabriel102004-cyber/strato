@@ -108,14 +108,12 @@ export const PlanilhasView: React.FC<PlanilhasViewProps> = ({
 
   const handleSyncAllSheetsAPI = async () => {
     setIsSyncingAPI(true);
-    setSyncApiMessage('Sincronizando com as APIs do Google Sheets...');
+    setSyncApiMessage('Sincronizando com o banco de dados...');
     try {
       if (onRefreshSheets) {
         await onRefreshSheets();
-      } else {
-        await fetch('/api/fetch-sheets');
       }
-      setSyncApiMessage('Sincronização concluída! As planilhas do Google Sheets foram lidas e atualizadas no dashboard em tempo real.');
+      setSyncApiMessage('Sincronização concluída! Os dados do banco foram atualizados no dashboard.');
       setTimeout(() => setSyncApiMessage(null), 4000);
     } catch (e: any) {
       setSyncApiMessage('Erro ao conectar com servidor.');

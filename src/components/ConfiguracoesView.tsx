@@ -13,12 +13,11 @@ import {
   X,
   UserCheck,
 } from 'lucide-react';
-import { User } from 'firebase/auth';
 import { SpreadsheetConnection, Transaction, TaxSettings, AuthErrorInfo, UserProfile } from '../types';
 import { PlanilhasView } from './PlanilhasView';
 
 interface ConfiguracoesViewProps {
-  googleUser: User | UserProfile | null;
+  googleUser: UserProfile | null;
   isLoggingIn: boolean;
   onGoogleLogin: () => void;
   onGoogleLogout: () => void;

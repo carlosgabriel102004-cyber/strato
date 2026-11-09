@@ -11,7 +11,7 @@ import { DividasView } from './components/DividasView';
 import { MetasView } from './components/MetasView';
 import { ConfiguracoesView } from './components/ConfiguracoesView';
 import { ExtratoView } from './components/ExtratoView';
-import { parseAndFetchAllSheets, calculateEffectiveInvoiceDate, getTransactionAllocatedMonthLabel, getCurrentMonthLabel } from './utils/sheetParser';
+import { getTransactionAllocatedMonthLabel, getCurrentMonthLabel } from './utils/sheetParser';
 
 import {
   MOCK_TRANSACTIONS,
@@ -25,14 +25,13 @@ import {
   INITIAL_DEBTORS,
   INITIAL_FINANCIAL_GOALS,
 } from './data/mockData';
-import { Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment } from './types';
-import { initAuth, googleSignIn, logout, getAccessToken, parseAuthError, loginWithDirectProfile, loginAsCarlos, loginWithCustomEmail } from './lib/firebase';
-import { User } from 'firebase/auth';
-import { AuthAssistModal } from './components/AuthAssistModal';
+import { Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment, NewRecurringCharge } from './types';
+import { initAuth, googleSignIn, logout, parseAuthError } from './lib/auth';
+import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit } from './lib/financeRepository';
+import { LoginScreen } from './components/LoginScreen';
 import { PaymentRemindersModal } from './components/PaymentRemindersModal';
 import { buildPaymentReminders } from './utils/paymentReminders';
 import { getCardInvoicePaymentKey, getSubscriptionPaymentKey } from './utils/subscriptions';
-import { NewRecurringCharge } from './utils/sheetWriter';
 
 const getTabFromHash = (): string => {
   if (typeof window === 'undefined') return 'dashboard';
@@ -51,6 +50,20 @@ function loadFromStorage<T>(key: string, fallback: T): T {
     console.warn(`Error reading localStorage key "${key}":`, e);
   }
   return fallback;
+}
+
+const FINANCE_CACHE_KEYS = [
+  'strato_transactions', 'strato_months_data', 'strato_credit_cards', 'strato_investments',
+  'strato_debtors', 'strato_subscriptions', 'strato_spreadsheets',
+];
+
+// Financial data is cached in the browser for a fast first paint; wipe it when nobody is signed in.
+function clearCachedFinanceData() {
+  try {
+    FINANCE_CACHE_KEYS.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // storage unavailable: nothing to clear
+  }
 }
 
 export function App() {
@@ -165,37 +178,16 @@ export function App() {
   useEffect(() => { localStorage.setItem('strato_tax_settings', JSON.stringify(taxSettings)); }, [taxSettings]);
 
   // Auth state
-  const [googleUser, setGoogleUser] = useState<User | UserProfile | null>(null);
+  const [googleUser, setGoogleUser] = useState<UserProfile | null>(null);
+  const [authReady, setAuthReady] = useState<boolean>(false);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
-  const [userAccessToken, setUserAccessToken] = useState<string | null>(null);
   const [authError, setAuthError] = useState<AuthErrorInfo | null>(null);
-  const [showAuthAssistModal, setShowAuthAssistModal] = useState<boolean>(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
-  const fetchLiveSheets = useCallback(async (tokenToUse?: string | null) => {
+  const fetchLiveSheets = useCallback(async () => {
     try {
-      const headers: Record<string, string> = {};
-      const activeToken = tokenToUse || userAccessToken || getAccessToken();
-      if (activeToken) {
-        headers['Authorization'] = `Bearer ${activeToken}`;
-      }
-
-      let data: any = null;
-      try {
-        const res = await fetch('/api/fetch-sheets', { headers });
-        if (res.ok) {
-          const contentType = res.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            data = await res.json();
-          }
-        }
-      } catch (apiErr) {
-        console.warn('API route unavailable, using direct browser sheet parser for Vercel/Static host:', apiErr);
-      }
-
-      // Fallback to client-side parser if API endpoint is not available or returned an error (e.g. Vercel static hosting)
-      if (!data || !data.success) {
-        data = await parseAndFetchAllSheets(activeToken || undefined);
-      }
+      const data: any = await loadFinanceData();
+      setSyncError(null);
 
       if (data && data.success) {
         if (data.sheets && Array.isArray(data.sheets)) {
@@ -208,7 +200,7 @@ export function App() {
                   status: found.status,
                   description: found.message || sheet.description,
                   recordsCount: found.linesCount !== undefined ? found.linesCount : sheet.recordsCount,
-                  lastSync: found.status === 'conectado' ? 'Sincronizado via Google API' : 'Privado (Faça login para conectar)',
+                  lastSync: found.status === 'conectado' ? 'Sincronizado com o banco de dados' : 'Erro ao sincronizar',
                 };
               }
               return sheet;
@@ -399,26 +391,24 @@ export function App() {
           }
         }
       }
-    } catch (err) {
-      console.error('Failed to sync live sheets:', err);
+    } catch (err: any) {
+      console.error('Failed to load data from Supabase:', err);
+      setSyncError(err?.message || 'Falha ao carregar os dados.');
     } finally {
       setDidInitialSync(true);
     }
-  }, [userAccessToken]);
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = initAuth(
-      (user, token) => {
-        setGoogleUser(user);
-        setUserAccessToken(token);
-        fetchLiveSheets(token);
-      },
-      () => {
-        setGoogleUser(null);
-        setUserAccessToken(null);
-        fetchLiveSheets(null);
+    const unsubscribe = initAuth((user) => {
+      setGoogleUser(user);
+      setAuthReady(true);
+      if (user) {
+        fetchLiveSheets();
+      } else {
+        clearCachedFinanceData();
       }
-    );
+    });
     return () => unsubscribe();
   }, [fetchLiveSheets]);
 
@@ -426,7 +416,7 @@ export function App() {
   useEffect(() => {
     let lastAutoSync = 0;
     const handleTabActive = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && googleUser) {
         const now = Date.now();
         if (now - lastAutoSync > 2500) {
           lastAutoSync = now;
@@ -442,57 +432,24 @@ export function App() {
       window.removeEventListener('focus', handleTabActive);
       document.removeEventListener('visibilitychange', handleTabActive);
     };
-  }, [fetchLiveSheets]);
+  }, [fetchLiveSheets, googleUser]);
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
     setAuthError(null);
     try {
-      const res = await googleSignIn();
-      if (res) {
-        setGoogleUser(res.user);
-        setUserAccessToken(res.accessToken);
-        setAuthError(null);
-        setShowAuthAssistModal(false);
-        await fetchLiveSheets(res.accessToken);
-      }
+      await googleSignIn(); // redirects to Google and comes back signed in
     } catch (e: any) {
       console.error('Google Sign in failed:', e);
-      const parsed = parseAuthError(e);
-      setAuthError(parsed);
-      setShowAuthAssistModal(true);
-      if (activeTab !== 'configuracoes') {
-        setActiveTab('configuracoes');
-      }
-    } finally {
+      setAuthError(parseAuthError(e));
       setIsLoggingIn(false);
     }
   };
 
-  const handleDirectCarlosLogin = () => {
-    const carlosProfile = loginAsCarlos();
-    setGoogleUser(carlosProfile);
-    setUserAccessToken('local-authorized-session');
-    setAuthError(null);
-    setShowAuthAssistModal(false);
-    fetchLiveSheets('local-authorized-session');
-  };
-
-  const handleCustomEmailLogin = (email: string, name?: string) => {
-    const customProfile = loginWithCustomEmail(email, name);
-    setGoogleUser(customProfile);
-    setUserAccessToken('local-authorized-session');
-    setAuthError(null);
-    setShowAuthAssistModal(false);
-    fetchLiveSheets('local-authorized-session');
-  };
-
   const handleGoogleLogout = async () => {
     await logout();
-    setGoogleUser(null);
-    setUserAccessToken(null);
-    setAuthError(null);
-    fetchLiveSheets(null);
+    clearCachedFinanceData();
+    window.location.reload(); // drop everything held in memory
   };
 
   const handleAddGoal = (newGoal: Omit<FinancialGoal, 'id'>) => {
@@ -523,60 +480,10 @@ export function App() {
     }
   }, [didInitialSync, paymentReminders]);
 
-  // Add new manual transaction and dynamically update monthly totals!
-  const handleAddTransaction = (newTx: Omit<Transaction, 'id'>) => {
-    const timing = calculateEffectiveInvoiceDate(
-      newTx.date,
-      newTx.account || 'Geral',
-      newTx.paymentMethod || 'PIX',
-      creditCards,
-      newTx.invoiceDueDateStr
-    );
-
-    const createdTx: Transaction = {
-      ...newTx,
-      id: `tx-manual-${Date.now()}`,
-      purchaseDate: newTx.date,
-      effectiveExpenseDate: timing.effectiveExpenseDate,
-      effectiveMonthLabel: timing.effectiveMonthLabel,
-      isCreditCard: timing.isCreditCard,
-      cardName: timing.cardName,
-      invoiceDueDateStr: timing.invoiceDueDateStr,
-    };
-
-    setTransactions((prev) => [createdTx, ...prev]);
-
-    const targetMonth = timing.effectiveMonthLabel || selectedMonth;
-
-    // Recalculate summary totals for the allocated month
-    setMonthsData((prev) => {
-      const currentMonth = prev[targetMonth] || prev[selectedMonth] || prev['Agosto 2026'];
-      let newIncome = currentMonth.totalIncome;
-      let newExpenses = currentMonth.totalExpenses;
-      let newInvestments = currentMonth.totalInvestments;
-
-      if (createdTx.type === 'income') {
-        newIncome += createdTx.amount;
-      } else if (createdTx.type === 'expense') {
-        newExpenses += createdTx.amount;
-      } else if (createdTx.type === 'investment') {
-        newInvestments += createdTx.amount;
-      }
-
-      const newLeftover = newIncome - newExpenses;
-
-      return {
-        ...prev,
-        [targetMonth]: {
-          ...currentMonth,
-          totalIncome: newIncome,
-          totalExpenses: newExpenses,
-          totalInvestments: newInvestments,
-          leftover: newLeftover,
-          totalMoney: currentMonth.totalMoney + (createdTx.type === 'income' ? createdTx.amount : createdTx.type === 'expense' ? -createdTx.amount : 0),
-        },
-      };
-    });
+  // Save a new transaction in Supabase, then reload so every total is recalculated
+  const handleAddTransaction = async (newTx: Omit<Transaction, 'id'>) => {
+    await insertTransaction(newTx);
+    await fetchLiveSheets();
   };
 
   const handleUpdateMonthSummary = (monthKey: string, updated: Partial<MonthSummaryData>) => {
@@ -602,11 +509,17 @@ export function App() {
   };
 
   const handleUpdateCardLimit = (cardId: string, newLimit: number) => {
+    const previous = creditCards;
     setCreditCards((prevCards) =>
       prevCards.map((card) =>
         card.id === cardId ? { ...card, limit: newLimit } : card
       )
     );
+    setCardLimit(cardId, newLimit).catch((err) => {
+      console.error(err);
+      setCreditCards(previous);
+      window.alert(err.message);
+    });
   };
 
   const handleToggleCardPaid = (cardId: string) => {
@@ -619,6 +532,15 @@ export function App() {
   };
 
   const handleToggleSubscriptionStatus = (subId: string) => {
+    const target = subscriptions.find((sub) => sub.id === subId);
+    if (target) {
+      const nextActive = !(target.status === 'ativa' || target.active);
+      setSubscriptionActive(subId, nextActive).catch((err) => {
+        console.error(err);
+        window.alert(err.message);
+        fetchLiveSheets();
+      });
+    }
     setSubscriptions((prevSubs) =>
       prevSubs.map((sub) => {
         if (sub.id === subId) {
@@ -640,40 +562,8 @@ export function App() {
   };
 
   const handleAddRecurringCharge = async (charge: NewRecurringCharge) => {
-    const accessToken = userAccessToken || getAccessToken();
-    if (!accessToken || accessToken === 'local-authorized-session') {
-      throw new Error('Entre com sua conta Google para salvar a nova cobrança na planilha.');
-    }
-
-    const response = await fetch('/api/subscriptions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(charge),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      const reason = result.error || 'Não foi possível gravar a cobrança.';
-      if (response.status === 401 || response.status === 403 || response.status === 502) {
-        throw new Error(`${reason} Se a conta já estiver conectada, saia e entre novamente para conceder a permissão de edição da planilha.`);
-      }
-      throw new Error(reason);
-    }
-
-    const newSubscription: Subscription = {
-      id: `sub-local-${Date.now()}`,
-      status: 'ativa',
-      serviceName: charge.serviceName,
-      category: 'Contas Fixas',
-      monthlyPrice: charge.monthlyPrice,
-      paymentCard: charge.paymentMethod,
-      renewalDay: charge.renewalDay,
-      active: true,
-    };
-    setSubscriptions((prev) => [...prev, newSubscription]);
-    await fetchLiveSheets(accessToken);
+    await insertSubscription(charge);
+    await fetchLiveSheets();
   };
 
   const handleAddSpreadsheet = (sheet: SpreadsheetConnection) => {
@@ -687,8 +577,25 @@ export function App() {
   // Find total money sheet
   const totalMoneySheet = spreadsheets.find((s) => s.type === 'total_mes') || spreadsheets[0];
 
+  if (!authReady || !googleUser) {
+    return (
+      <LoginScreen
+        isLoading={!authReady}
+        isLoggingIn={isLoggingIn}
+        onGoogleLogin={handleGoogleLogin}
+        authError={authError}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9F3] text-[#11310C] font-sans selection:bg-[#C4C240] selection:text-[#11310C]">
+      {syncError && (
+        <div className="bg-[#E8402A] text-white text-xs font-semibold px-4 py-2 text-center">
+          Não foi possível carregar seus dados: {syncError}{' '}
+          <button className="underline font-bold" onClick={() => fetchLiveSheets()}>Tentar de novo</button>
+        </div>
+      )}
       {/* Header Bar */}
       <Header
         selectedMonth={selectedMonth}
@@ -832,7 +739,6 @@ export function App() {
                 onUpdateTaxSettings={setTaxSettings}
                 authError={authError}
                 onClearAuthError={() => setAuthError(null)}
-                onDirectCarlosLogin={handleDirectCarlosLogin}
               />
             )}
           </motion.div>
@@ -845,24 +751,14 @@ export function App() {
         onClose={() => setIsManualModalOpen(false)}
         onAddTransaction={handleAddTransaction}
         selectedMonth={selectedMonth}
+        accountOptions={[...new Set(transactions.map((tx) => tx.account).filter((a): a is string => Boolean(a)))]}
+        paymentOptions={['PIX', ...creditCards.map((card) => card.name)]}
       />
 
       {showPaymentReminder && (
         <PaymentRemindersModal reminders={paymentReminders} onClose={() => setShowPaymentReminder(false)} />
       )}
 
-      {/* Google Auth Assistance Modal */}
-      <AuthAssistModal
-        isOpen={showAuthAssistModal}
-        onClose={() => setShowAuthAssistModal(false)}
-        authError={authError}
-        onLoginAsCarlos={handleDirectCarlosLogin}
-        onLoginCustomEmail={handleCustomEmailLogin}
-        onRetryGoogleLogin={() => {
-          setShowAuthAssistModal(false);
-          handleGoogleLogin();
-        }}
-      />
     </div>
   );
 }

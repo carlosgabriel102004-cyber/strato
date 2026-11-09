@@ -17,7 +17,6 @@ import {
   ShieldCheck,
   User as UserIcon,
 } from 'lucide-react';
-import { User } from 'firebase/auth';
 import { TomatoIcon } from './TomatoIcon';
 import { Transaction, Investment, CreditCardSheet, Debtor, UserProfile } from '../types';
 import { formatCurrency } from '../utils/formatters';
@@ -35,7 +34,7 @@ interface HeaderProps {
   investments?: Investment[];
   creditCards?: CreditCardSheet[];
   debtors?: Debtor[];
-  googleUser?: User | UserProfile | null;
+  googleUser?: UserProfile | null;
   isLoggingIn?: boolean;
   onGoogleLogin?: () => void;
   onRefreshSheets?: () => void;
