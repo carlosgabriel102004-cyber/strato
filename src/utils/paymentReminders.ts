@@ -48,6 +48,9 @@ export function buildPaymentReminders(
     const paymentKey = getSubscriptionPaymentKey(subscription.serviceName, currentMonth);
     if (!isActive || subscription.monthlyPrice <= 0 || subscriptionPayments[paymentKey]?.paidDate) return;
     if (isPaidInStatement(subscription.serviceName, today, transactions)) return;
+    // Charged on a credit card: it is part of that card's invoice, not a separate bill
+    const method = normalize(subscription.paymentCard || '');
+    if (/cartao|credito/.test(method) || cards.some((card) => normalize(card.name) === method)) return;
 
     const dueDate = dueDateForDay(today, subscription.renewalDay);
     reminders.push({
