@@ -38,6 +38,7 @@ interface HeaderProps {
   isLoggingIn?: boolean;
   onGoogleLogin?: () => void;
   onRefreshSheets?: () => void;
+  addOptions?: { label: string; hint?: string; onClick: () => void }[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -56,7 +57,9 @@ export const Header: React.FC<HeaderProps> = ({
   isLoggingIn = false,
   onGoogleLogin,
   onRefreshSheets,
+  addOptions,
 }) => {
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMonthOpen, setIsMonthOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -118,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Search & Month Filter & CTA & Settings */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
           {/* Global Interactive Search Input */}
-          <div className="relative flex-1 sm:w-64">
+          <div className="relative basis-full order-last sm:order-none sm:basis-auto sm:flex-1 sm:w-64">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#11310C]/40" />
             <input
               type="text"
@@ -277,23 +280,34 @@ export const Header: React.FC<HeaderProps> = ({
             <RefreshCw className={`w-4 h-4 text-[#C4C240] ${isSyncing ? 'animate-spin' : ''}`} />
           </button>
 
-          {/* Settings Button */}
-          <button
-            onClick={() => onNavigateToTab('configuracoes')}
-            className="p-2 rounded-2xl bg-white/90 hover:bg-white border border-[#11310C]/15 text-[#11310C] shadow-xs cursor-pointer transition-all"
-            title="Configurações"
-          >
-            <Settings className="w-4 h-4 text-[#11310C]" />
-          </button>
-
-          {/* Registro Manual Button */}
-          <button
-            onClick={onOpenManualModal}
-            className="liquid-button flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden lg:inline">Novo Lançamento</span>
-          </button>
+          {/* Novo lançamento: as opções mudam conforme a página */}
+          <div className="relative">
+            <button
+              onClick={() => (addOptions && addOptions.length > 1 ? setIsAddMenuOpen((v) => !v) : (addOptions?.[0]?.onClick ?? onOpenManualModal)())}
+              className="liquid-button flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden lg:inline">{addOptions && addOptions.length === 1 ? addOptions[0].label : 'Novo Lançamento'}</span>
+              {addOptions && addOptions.length > 1 && <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            {isAddMenuOpen && addOptions && addOptions.length > 1 && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsAddMenuOpen(false)} />
+                <div className="absolute right-0 mt-2 w-60 z-50 rounded-xl bg-[#FCFCFA] border border-[#11310C]/10 shadow-[0_16px_40px_-16px_rgba(17,49,12,0.35)] p-1">
+                  {addOptions.map((opt) => (
+                    <button
+                      key={opt.label}
+                      onClick={() => { setIsAddMenuOpen(false); opt.onClick(); }}
+                      className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-[#11310C]/5 cursor-pointer"
+                    >
+                      <span className="block text-[13px] font-medium text-[#11310C]">{opt.label}</span>
+                      {opt.hint && <span className="block text-[11px] text-[#11310C]/50">{opt.hint}</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>

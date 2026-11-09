@@ -12,6 +12,8 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { CustomSelect } from './CustomSelect';
+import { QuickForm, parseMoney } from './QuickForm';
+import { Pencil, Plus } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -34,7 +36,17 @@ interface ResumoViewProps {
   monthsList: string[];
   investments?: Investment[];
   goals?: FinancialGoal[];
+  balanceAccounts?: { id: string; name: string }[];
+  onSaveBalances?: (date: string, values: Record<string, number | null>, previousDate?: string) => Promise<void>;
 }
+
+const MONTHS_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const brToIso = (br: string) => {
+  const [d, m, y] = (br || '').split('/');
+  return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
+};
+const moneyText = (v: number | undefined | null) =>
+  v === undefined || v === null ? '' : v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const CustomBarTooltip = ({ active, payload, label, liveInvestmentsTotal = 0, includeAportes = false }: any) => {
   if (active && payload && payload.length) {
@@ -113,8 +125,11 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
   monthsList,
   investments = [],
   goals = [],
+  balanceAccounts = [],
+  onSaveBalances,
 }) => {
   const [includeAportes, setIncludeAportes] = useState<boolean>(false);
+  const [balanceForm, setBalanceForm] = useState<null | { title: string; initial: Record<string, string>; previousDate?: string }>(null);
 
   // Live real-time investment total calculation
   const liveInvestmentsTotal =
@@ -632,6 +647,31 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
           </div>
         )}
 
+        {onSaveBalances && balanceAccounts.length > 0 && (() => {
+          const realRows = tableRows.filter((r: any) => !r.isProjected);
+          const last = realRows[realRows.length - 1];
+          const [lastName, lastYear] = (last?.monthLabel || '').split(' ');
+          const idx = MONTHS_PT.findIndex((m) => m.toLowerCase() === (lastName || '').toLowerCase());
+          const nextKey = idx >= 0 ? Number(lastYear) * 12 + idx + 1 : new Date().getFullYear() * 12 + new Date().getMonth();
+          const nextLabel = `${MONTHS_PT[nextKey % 12]} ${Math.floor(nextKey / 12)}`;
+          const today = new Date();
+          const sameMonth = today.getFullYear() * 12 + today.getMonth() === nextKey;
+          const defaultDate = sameMonth ? today.toISOString().slice(0, 10) : `${Math.floor(nextKey / 12)}-${String((nextKey % 12) + 1).padStart(2, '0')}-05`;
+          const initial: Record<string, string> = { date: defaultDate };
+          balanceAccounts.forEach((a) => { initial[a.id] = moneyText(last?.balances?.[a.name]); });
+          return (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-[#11310C]/55">Último saldo lançado: <strong className="text-[#11310C]">{last ? `${last.monthLabel} (${last.date})` : '—'}</strong></p>
+              <button
+                onClick={() => setBalanceForm({ title: `Saldos de ${nextLabel}`, initial })}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#11310C] text-[#FAFBF6] text-xs font-semibold cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Lançar saldos de {nextLabel.split(' ')[0].toLowerCase()}
+              </button>
+            </div>
+          );
+        })()}
+
         <div className="overflow-x-auto rounded-2xl border border-[#11310C]/10 bg-white/80">
           <table className="w-full text-left text-xs border-collapse min-w-[900px]">
             <thead>
@@ -760,6 +800,20 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
                       <div className="flex items-center gap-1.5">
                         {row.monthLabel}
                         {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#11310C]" />}
+                        {onSaveBalances && !row.isProjected && balanceAccounts.length > 0 && (
+                          <button
+                            title="Editar saldos deste mês"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const initial: Record<string, string> = { date: brToIso(row.date) };
+                              balanceAccounts.forEach((a) => { initial[a.id] = moneyText(row.balances?.[a.name]); });
+                              setBalanceForm({ title: `Editar saldos de ${row.monthLabel}`, initial, previousDate: brToIso(row.date) });
+                            }}
+                            className="ml-1 p-1 rounded-md text-[#11310C]/40 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
                     </td>
 
@@ -794,6 +848,27 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
           </table>
         </div>
       </div>
+
+      <QuickForm
+        open={Boolean(balanceForm)}
+        title={balanceForm?.title || ''}
+        subtitle="Saldo de cada conta no dia. Deixe vazio o que não tiver."
+        initial={balanceForm?.initial}
+        submitLabel="Salvar saldos"
+        fields={[
+          { name: 'date', label: 'Data dos saldos', type: 'date', required: true },
+          ...balanceAccounts.map((a) => ({ name: a.id, label: a.name, type: 'money' as const, half: true, placeholder: '0,00' })),
+        ]}
+        onClose={() => setBalanceForm(null)}
+        onSubmit={async (v) => {
+          const values: Record<string, number | null> = {};
+          balanceAccounts.forEach((a) => {
+            const raw = (v[a.id] || '').trim();
+            values[a.id] = raw ? parseMoney(raw) : null;
+          });
+          await onSaveBalances!(v.date, values, balanceForm?.previousDate);
+        }}
+      />
     </div>
   );
 };

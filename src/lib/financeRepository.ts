@@ -94,6 +94,8 @@ export async function loadFinanceData() {
   applySharedSubscriptionShares(data);
   const autoPayIds = new Set(cards.filter((c) => c.auto_pay).map((c) => String(c.id)));
   data.cards = (data.cards || []).map((card: any) => ({ ...card, autoPay: autoPayIds.has(String(card.id)) }));
+  data.balanceAccounts = accounts.map((a: any) => ({ id: String(a.id), name: str(a.name) }));
+  data.investmentPositions = investments.map((i: any) => ({ id: String(i.id), ticker: str(i.ticker), shares: Number(i.shares) || 0, averagePriceUsd: Number(i.average_price_usd) || 0 }));
   data.exchanges = exchanges.map((e: any) => ({
     id: String(e.id),
     date: String(e.date),
@@ -183,4 +185,64 @@ export async function setSubscriptionActive(id: string, active: boolean) {
 export async function setCardLimit(id: string, limit: number) {
   const { error } = await supabase.from('cards').update({ credit_limit: limit }).eq('id', id);
   if (error) throw new Error(`Não foi possível atualizar o limite: ${error.message}`);
+}
+
+const nextOrder = () => Math.floor(Date.now() / 1000);
+
+export async function insertExchange(e: { date: string; brlAmount: number; usdAmount: number; feesBrl: number; provider: string }) {
+  const { error } = await supabase.from('currency_exchanges').insert({
+    date: e.date,
+    brl_amount: e.brlAmount,
+    brl_after_spread: e.brlAmount - e.feesBrl,
+    usd_amount: e.usdAmount,
+    fees_brl: e.feesBrl,
+    rate: e.usdAmount > 0 ? (e.brlAmount - e.feesBrl) / e.usdAmount : null,
+    provider: e.provider,
+  });
+  if (error) throw new Error(`Não foi possível salvar o câmbio: ${error.message}`);
+}
+
+/** Compra de ações: soma à posição existente (preço médio ponderado) ou cria uma nova. */
+export async function addStockPurchase(p: { ticker: string; name: string; assetClass: string; shares: number; priceUsd: number }) {
+  const ticker = p.ticker.trim().toUpperCase();
+  const { data: existing, error: readError } = await supabase.from('investments').select('*').eq('ticker', ticker).maybeSingle();
+  if (readError) throw new Error(`Não foi possível ler a carteira: ${readError.message}`);
+  if (existing) {
+    const oldShares = Number(existing.shares) || 0;
+    const oldAvg = Number(existing.average_price_usd) || 0;
+    const shares = oldShares + p.shares;
+    const avg = shares > 0 ? (oldShares * oldAvg + p.shares * p.priceUsd) / shares : p.priceUsd;
+    const { error } = await supabase.from('investments').update({ shares, average_price_usd: Number(avg.toFixed(4)) }).eq('id', existing.id);
+    if (error) throw new Error(`Não foi possível atualizar a posição: ${error.message}`);
+  } else {
+    const { error } = await supabase.from('investments').insert({
+      ticker, name: p.name || ticker, asset_class: p.assetClass, shares: p.shares, average_price_usd: p.priceUsd, sort_order: nextOrder(),
+    });
+    if (error) throw new Error(`Não foi possível salvar a compra: ${error.message}`);
+  }
+}
+
+export async function insertDebtorEntry(d: { borrowerName: string; description: string; amount: number; movement: 'pegou' | 'pagou' }) {
+  const { error } = await supabase.from('debtor_entries').insert({
+    borrower_name: d.borrowerName, description: d.description, amount: d.amount, movement: d.movement, sort_order: nextOrder(),
+  });
+  if (error) throw new Error(`Não foi possível salvar o registro: ${error.message}`);
+}
+
+export async function insertCard(c: { name: string; closingDay: number; dueDay: number; limit: number }) {
+  const { error } = await supabase.from('cards').insert({
+    name: c.name, closing_day: c.closingDay, due_day: c.dueDay, credit_limit: c.limit, sort_order: nextOrder(),
+  });
+  if (error) throw new Error(`Não foi possível salvar o cartão: ${error.message}`);
+}
+
+/** Saldos das contas num dia (cria ou atualiza). values: id da conta -> valor (null = vazio). */
+export async function saveBalanceSnapshot(date: string, values: Record<string, number | null>, previousDate?: string) {
+  if (previousDate && previousDate !== date) {
+    const { error } = await supabase.from('balance_snapshots').delete().eq('recorded_on', previousDate);
+    if (error) throw new Error(`Não foi possível mover a data: ${error.message}`);
+  }
+  const rows = Object.entries(values).map(([accountId, amount]) => ({ account_id: accountId, recorded_on: date, amount }));
+  const { error } = await supabase.from('balance_snapshots').upsert(rows, { onConflict: 'account_id,recorded_on' });
+  if (error) throw new Error(`Não foi possível salvar os saldos: ${error.message}`);
 }

@@ -27,7 +27,8 @@ import {
 } from './data/mockData';
 import { CurrencyExchange, Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment, NewRecurringCharge } from './types';
 import { initAuth, googleSignIn, logout, parseAuthError } from './lib/auth';
-import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid } from './lib/financeRepository';
+import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid, insertExchange, addStockPurchase, insertDebtorEntry, insertCard, saveBalanceSnapshot } from './lib/financeRepository';
+import { QuickForm, parseMoney } from './components/QuickForm';
 import { LoginScreen } from './components/LoginScreen';
 import { PaymentRemindersModal } from './components/PaymentRemindersModal';
 import { buildPaymentReminders } from './utils/paymentReminders';
@@ -155,6 +156,8 @@ export function App() {
   );
   const [usdRate, setUsdRate] = useState<number>(5.50);
   const [exchanges, setExchanges] = useState<CurrencyExchange[]>([]);
+  const [balanceAccounts, setBalanceAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [activeForm, setActiveForm] = useState<null | 'exchange' | 'stock' | 'debtor' | 'card'>(null);
   const [netUsdRate, setNetUsdRate] = useState<number>(5.401);
 
   // Auto-save effects for persistence across navigation/sessions
@@ -238,6 +241,7 @@ export function App() {
         }
 
         setExchanges(Array.isArray(data.exchanges) ? data.exchanges : []);
+        setBalanceAccounts(Array.isArray(data.balanceAccounts) ? data.balanceAccounts : []);
         const paidInvoices: Record<string, boolean> = data.cardInvoicePayments || {};
         setCardInvoicePayments(paidInvoices);
         if (data.cards && Array.isArray(data.cards) && data.cards.length > 0) {
@@ -610,6 +614,28 @@ export function App() {
     await fetchLiveSheets();
   };
 
+  const openManual = () => setIsManualModalOpen(true);
+  const addOptionsForTab: { label: string; hint?: string; onClick: () => void }[] =
+    activeTab === 'investimentos'
+      ? [
+          { label: 'Câmbio (real → dólar)', hint: 'Entra no dólar médio', onClick: () => setActiveForm('exchange') },
+          { label: 'Compra de ações', hint: 'Soma à carteira com preço médio', onClick: () => setActiveForm('stock') },
+          { label: 'Lançamento no extrato', onClick: openManual },
+        ]
+      : activeTab === 'dividas'
+      ? [
+          { label: 'Novo registro de devedor', hint: 'Alguém pegou ou pagou', onClick: () => setActiveForm('debtor') },
+          { label: 'Lançamento no extrato', onClick: openManual },
+        ]
+      : activeTab === 'cartoes'
+      ? [
+          { label: 'Novo cartão', onClick: () => setActiveForm('card') },
+          { label: 'Lançamento no extrato', onClick: openManual },
+        ]
+      : [{ label: 'Novo Lançamento', onClick: openManual }];
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+
   const handleAddSpreadsheet = (sheet: SpreadsheetConnection) => {
     setSpreadsheets((prev) => [sheet, ...prev]);
   };
@@ -657,6 +683,7 @@ export function App() {
         isLoggingIn={isLoggingIn}
         onGoogleLogin={handleGoogleLogin}
         onRefreshSheets={() => fetchLiveSheets()}
+        addOptions={addOptionsForTab}
       />
 
       <Sidebar activeTab={activeTab} onSelectTab={handleSelectTab} />
@@ -699,6 +726,11 @@ export function App() {
                 monthsList={monthsList}
                 investments={investments}
                 goals={goals}
+                balanceAccounts={balanceAccounts}
+                onSaveBalances={async (date, values, previousDate) => {
+                  await saveBalanceSnapshot(date, values, previousDate);
+                  await fetchLiveSheets();
+                }}
               />
             )}
 
@@ -708,7 +740,8 @@ export function App() {
                 usdRate={usdRate}
                 netUsdRate={netUsdRate}
                 exchanges={exchanges}
-                onOpenManualModal={() => setIsManualModalOpen(true)}
+                onOpenManualModal={() => setActiveForm('stock')}
+                onOpenExchange={() => setActiveForm('exchange')}
               />
             )}
 
@@ -716,7 +749,7 @@ export function App() {
               <CartoesAssinaturasView
                 creditCards={creditCards}
                 subscriptions={subscriptions}
-                onOpenManualModal={() => setIsManualModalOpen(true)}
+                onOpenManualModal={() => setActiveForm('card')}
                 onToggleSubscriptionStatus={handleToggleSubscriptionStatus}
                 onUpdateCardLimit={handleUpdateCardLimit}
                 onToggleCardPaid={handleToggleCardPaid}
@@ -731,7 +764,7 @@ export function App() {
               <DividasView
                 debts={debts}
                 debtors={debtors}
-                onOpenManualModal={() => setIsManualModalOpen(true)}
+                onOpenManualModal={() => setActiveForm('debtor')}
               />
             )}
 
@@ -797,6 +830,81 @@ export function App() {
         selectedMonth={selectedMonth}
         accountOptions={[...new Set(transactions.map((tx) => tx.account).filter((a): a is string => Boolean(a)))]}
         paymentOptions={['PIX', ...creditCards.map((card) => card.name)]}
+      />
+
+      <QuickForm
+        open={activeForm === 'exchange'}
+        title="Câmbio"
+        subtitle="Reais enviados para dólar. Entra no seu dólar médio."
+        initial={{ date: todayIso, provider: 'ARQ' }}
+        fields={[
+          { name: 'date', label: 'Data', type: 'date', required: true, half: true },
+          { name: 'provider', label: 'Onde', placeholder: 'ARQ, Avenue…', half: true },
+          { name: 'brl', label: 'Reais enviados (R$)', type: 'money', required: true, half: true, placeholder: '0,00' },
+          { name: 'usd', label: 'Dólares recebidos ($)', type: 'money', required: true, half: true, placeholder: '0,00' },
+          { name: 'fees', label: 'Taxas (R$)', type: 'money', placeholder: '0,00', hint: 'Spread/IOF, se souber' },
+        ]}
+        onClose={() => setActiveForm(null)}
+        onSubmit={async (v) => {
+          await insertExchange({ date: v.date, brlAmount: parseMoney(v.brl), usdAmount: parseMoney(v.usd), feesBrl: v.fees ? parseMoney(v.fees) : 0, provider: v.provider || '' });
+          await fetchLiveSheets();
+        }}
+      />
+
+      <QuickForm
+        open={activeForm === 'stock'}
+        title="Compra de ações"
+        subtitle="Se o ativo já existe na carteira, o preço médio é recalculado."
+        initial={{ assetClass: 'STOCK' }}
+        fields={[
+          { name: 'ticker', label: 'Ticker', required: true, half: true, placeholder: 'NFLX' },
+          { name: 'assetClass', label: 'Classe', type: 'select', half: true, options: [{ value: 'STOCK', label: 'Ação' }, { value: 'REIT', label: 'REIT' }, { value: 'ETF', label: 'ETF' }] },
+          { name: 'name', label: 'Nome', placeholder: 'Netflix Inc.' },
+          { name: 'shares', label: 'Quantidade de cotas', type: 'number', required: true, half: true, placeholder: '0,839226' },
+          { name: 'price', label: 'Preço pago por cota ($)', type: 'money', required: true, half: true, placeholder: '70,71' },
+        ]}
+        onClose={() => setActiveForm(null)}
+        onSubmit={async (v) => {
+          await addStockPurchase({ ticker: v.ticker, name: v.name || '', assetClass: v.assetClass || 'STOCK', shares: parseMoney(v.shares), priceUsd: parseMoney(v.price) });
+          await fetchLiveSheets();
+        }}
+      />
+
+      <QuickForm
+        open={activeForm === 'debtor'}
+        title="Registro de devedor"
+        initial={{ movement: 'pegou' }}
+        fields={[
+          { name: 'name', label: 'Pessoa', required: true, half: true, placeholder: 'Gabriela' },
+          { name: 'movement', label: 'Movimento', type: 'select', half: true, options: [{ value: 'pegou', label: 'Pegou (me deve)' }, { value: 'pagou', label: 'Pagou (devolveu)' }] },
+          { name: 'description', label: 'Descrição', required: true, placeholder: 'Racha de assinaturas (agosto)' },
+          { name: 'amount', label: 'Valor (R$)', type: 'money', required: true, placeholder: '0,00' },
+        ]}
+        onClose={() => setActiveForm(null)}
+        onSubmit={async (v) => {
+          await insertDebtorEntry({ borrowerName: v.name.trim(), description: v.description.trim(), amount: parseMoney(v.amount), movement: v.movement === 'pagou' ? 'pagou' : 'pegou' });
+          await fetchLiveSheets();
+        }}
+      />
+
+      <QuickForm
+        open={activeForm === 'card'}
+        title="Novo cartão"
+        fields={[
+          { name: 'name', label: 'Nome do cartão', required: true, placeholder: 'Cartão Inter' },
+          { name: 'closing', label: 'Dia que fecha', type: 'number', required: true, half: true, placeholder: '25' },
+          { name: 'due', label: 'Dia que vence', type: 'number', required: true, half: true, placeholder: '5' },
+          { name: 'limit', label: 'Limite (R$)', type: 'money', placeholder: '0,00' },
+        ]}
+        onClose={() => setActiveForm(null)}
+        onSubmit={async (v) => {
+          const closingDay = Math.round(parseMoney(v.closing));
+          const dueDay = Math.round(parseMoney(v.due));
+          if (!(closingDay >= 1 && closingDay <= 31 && dueDay >= 1 && dueDay <= 31)) throw new Error('Dias de fechamento e vencimento devem ser entre 1 e 31.');
+          const name = /^cart[aã]o/i.test(v.name.trim()) ? v.name.trim() : `Cartão ${v.name.trim()}`;
+          await insertCard({ name, closingDay, dueDay, limit: v.limit ? parseMoney(v.limit) : 0 });
+          await fetchLiveSheets();
+        }}
       />
 
       {showPaymentReminder && (

@@ -186,7 +186,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
           className="liquid-button flex items-center gap-2 px-4.5 py-2.5 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Registrar Fatura/Assinatura</span>
+          <span>Novo cartão</span>
         </button>
       </div>
 
