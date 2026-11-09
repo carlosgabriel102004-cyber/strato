@@ -91,6 +91,7 @@ export async function loadFinanceData() {
     usdRate: quotes.usdRate ?? undefined,
     sourceMessage: 'Sincronizado com o banco de dados (Supabase)',
   });
+  applySharedSubscriptionShares(data);
   const autoPayIds = new Set(cards.filter((c) => c.auto_pay).map((c) => String(c.id)));
   data.cards = (data.cards || []).map((card: any) => ({ ...card, autoPay: autoPayIds.has(String(card.id)) }));
   data.exchanges = exchanges.map((e: any) => ({
@@ -113,6 +114,37 @@ export async function setCardInvoicePaid(cardName: string, month: string, paid: 
     ? await supabase.from('card_invoice_payments').upsert({ card_name: cardName, month }, { onConflict: 'user_id,card_name,month' })
     : await supabase.from('card_invoice_payments').delete().eq('card_name', cardName).eq('month', month);
   if (error) throw new Error(`Não foi possível salvar o pagamento da fatura: ${error.message}`);
+}
+
+const normalizeText = (value: string) =>
+  (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+/**
+ * Shared subscriptions (e.g. Meli+ split with family) are charged at the full price,
+ * but only the user's share is a real cost: the others pay back their part, which is
+ * kept as 'reembolso' (control only). So the full charge counts as the user's share
+ * everywhere in the app. Card invoices are computed before this and keep the full value.
+ */
+function applySharedSubscriptionShares(data: any) {
+  const shared = (data.subscriptions || []).filter(
+    (sub: any) => sub.personalMonthlyPrice !== undefined && sub.personalMonthlyPrice < sub.monthlyPrice
+  );
+  if (!shared.length) return;
+  const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  data.transactions = (data.transactions || []).map((tx: any) => {
+    if (tx.type !== 'expense') return tx;
+    const description = normalizeText(tx.description);
+    const sub = shared.find(
+      (item: any) => description.includes(normalizeText(item.serviceName)) && Math.abs(tx.amount - item.monthlyPrice) <= 0.02
+    );
+    if (!sub) return tx;
+    return {
+      ...tx,
+      amount: sub.personalMonthlyPrice,
+      fullAmount: tx.amount,
+      description: `${tx.description} (sua parte de ${brl(tx.amount)})`,
+    };
+  });
 }
 
 export async function insertTransaction(tx: Omit<Transaction, 'id'>) {
