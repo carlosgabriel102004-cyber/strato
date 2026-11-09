@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Fraunces Variable', Georgia, serif;
+
+  /* cantos menos arredondados em todo o app */
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1rem;
 
   --color-citron: #C4C240;
   --color-citron-hover: #B5B333;
@@ -23,87 +28,46 @@
 }
 
 @layer utilities {
-  /* Liquid Glass iOS 26 Effects */
+  /* Superfícies planas e discretas (antes: efeito de vidro) */
   .glass-card {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 
-      0 10px 30px -10px rgba(17, 49, 12, 0.05),
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
-      inset 0 -1px 2px 0 rgba(196, 194, 64, 0.1);
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(17, 49, 12, 0.08) !important;
+    box-shadow: none;
   }
 
   .glass-pill {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    box-shadow: 
-      0 4px 15px rgba(0, 0, 0, 0.03),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(17, 49, 12, 0.08);
   }
 
   .glass-dark-card {
-    background: rgba(17, 49, 12, 0.92);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(196, 194, 64, 0.25);
-    box-shadow: 
-      0 20px 40px -15px rgba(17, 49, 12, 0.25),
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
+    background: #11310C;
+    border: 1px solid #11310C;
   }
 
   .liquid-button {
-    background: linear-gradient(135deg, #C4C240 0%, #B2B030 100%);
-    box-shadow: 
-      0 8px 20px -4px rgba(196, 194, 64, 0.4),
-      inset 0 1px 1px rgba(255, 255, 255, 0.5);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    background: #C4C240;
+    transition: background-color 0.15s ease;
   }
 
   .liquid-button:hover {
-    transform: translateY(-1.5px);
-    box-shadow: 
-      0 12px 24px -4px rgba(196, 194, 64, 0.5),
-      inset 0 1px 1px rgba(255, 255, 255, 0.7);
+    background: #B5B333;
   }
 
-  .liquid-glow-citron {
-    background: radial-gradient(circle, rgba(196, 194, 64, 0.22) 0%, rgba(255, 255, 255, 0) 70%);
-  }
-
+  .liquid-glow-citron,
   .liquid-glow-red {
-    background: radial-gradient(circle, rgba(225, 53, 19, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+    display: none;
   }
 
   .glaze-shine {
     position: relative;
     overflow: hidden;
   }
-
-  .glaze-shine::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-      60deg,
-      transparent 30%,
-      rgba(255, 255, 255, 0.25) 50%,
-      transparent 70%
-    );
-    transform: rotate(25deg);
-    pointer-events: none;
-    animation: shine 8s infinite linear;
-  }
 }
 
-@keyframes shine {
-  0% { transform: translateX(-100%) rotate(25deg); }
-  20% { transform: translateX(100%) rotate(25deg); }
-  100% { transform: translateX(100%) rotate(25deg); }
+body {
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Custom Scrollbar */

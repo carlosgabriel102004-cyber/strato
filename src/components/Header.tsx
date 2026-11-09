@@ -111,29 +111,9 @@ export const Header: React.FC<HeaderProps> = ({
     matchedDebtors.length > 0;
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#F8F9F3]/90 border-b border-[#11310C]/10 px-4 lg:px-8 py-3.5 transition-all">
+    <header className="sticky top-0 z-50 bg-[#F8F9F3]/95 border-b border-[#11310C]/8 px-4 lg:px-8 py-3 transition-all">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 relative">
-        {/* Brand & Logo */}
-        <div className="flex items-center justify-between md:justify-start gap-4">
-          <div
-            onClick={() => onNavigateToTab('dashboard')}
-            className="flex items-center gap-3 cursor-pointer group"
-          >
-            {/* Logo pill */}
-            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shadow-md shadow-[#11310C]/10 border border-[#11310C]/15 glaze-shine group-hover:scale-105 transition-all">
-              <TomatoIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-sans font-black text-2xl tracking-tight text-[#11310C]">
-                  Strato
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Brand & Title */}
-        </div>
+        <div className="hidden md:block text-[11px] font-medium uppercase tracking-[0.14em] text-[#11310C]/50">Strato</div>
 
         {/* Search & Month Filter & CTA & Settings */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">

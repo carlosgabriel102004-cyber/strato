@@ -590,17 +590,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 space-y-6 pb-12">
       {/* Abacaxi Pay Inspired Welcome & Range Selector */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-card rounded-3xl p-6 border border-white/80">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C] tracking-tight">
-            Controle <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Financeiro</span> de Alta Precisão
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+            Controle <span className="italic font-medium text-[#11310C]/70">Financeiro</span> de Alta Precisão
           </h1>
         </div>
 
         {/* Action Controls & Range Filter */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Range Chips Pill Container */}
-          <div className="inline-flex items-center gap-1 p-1 bg-[#11310C]/5 rounded-2xl border border-[#11310C]/10 max-w-full flex-wrap sm:flex-nowrap">
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-xl border border-[#11310C]/12 max-w-full flex-wrap sm:flex-nowrap">
             {[
               { id: 'este-mes', label: 'Este Mês' },
               { id: 'semana', label: 'Essa Semana' },
@@ -643,18 +643,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Primary Financial Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 lg:divide-x divide-[#11310C]/10">
         {/* Metric 1: Ganho no Período */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 relative overflow-hidden group hover:border-[#C4C240]/40 transition-all">
+        <div className="p-5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-[#11310C]/60 uppercase tracking-[0.12em]">
               Ganhos {periodLabel}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
-              <ArrowUpRight className="w-4 h-4 text-emerald-700" />
-            </div>
+            <ArrowUpRight className="w-4 h-4 text-emerald-700" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[34px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(displayIncome)}
           </div>
           <div className="flex items-center gap-2 mt-2">
@@ -666,16 +664,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Metric 2: Gasto no Período (Chili Red) */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 relative overflow-hidden group hover:border-[#E13513]/30 transition-all">
+        <div className="p-5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-[#11310C]/60 uppercase tracking-[0.12em]">
               Gastos {periodLabel}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#FDECE9] text-[#E13513] flex items-center justify-center">
-              <ArrowDownRight className="w-4 h-4 text-[#E13513]" />
-            </div>
+            <ArrowDownRight className="w-4 h-4 text-[#E13513]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#E13513]">
+          <div className="font-serif text-3xl sm:text-[34px] font-semibold tracking-tight text-[#E13513]">
             {formatCurrency(displayExpenses)}
           </div>
           <div className="flex items-center gap-2 mt-2">
@@ -687,7 +683,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Metric 3: Sobrou no Período (Estética Dinheiro Total Consolidado) */}
-        <div className="glass-dark-card rounded-3xl p-5 text-[#FAFBF6] space-y-3 relative overflow-hidden glaze-shine flex flex-col justify-between">
+        <div className="bg-[#11310C] p-5 text-[#FAFBF6] space-y-3 relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-extrabold uppercase tracking-widest text-[#C4C240] flex items-center gap-1.5">
@@ -698,7 +694,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 LÍQUIDO
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mt-2">
+            <div className="font-serif text-3xl sm:text-[34px] font-semibold tracking-tight tracking-tight text-white mt-2">
               {formatCurrency(displayLeftover)}
             </div>
           </div>
@@ -708,16 +704,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Metric 5: Total em Investimentos */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 relative overflow-hidden">
+        <div className="p-5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-[#11310C]/60 uppercase tracking-[0.12em]">
               Investimentos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#11310C] text-[#C4C240] flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-[#C4C240]" />
-            </div>
+            <TrendingUp className="w-4 h-4 text-[#11310C]/60" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[34px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(currentMonthData.totalInvestments)}
           </div>
           <div className="flex items-center gap-2 mt-2">
@@ -839,7 +833,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Filter of Months + Legend in header */}
             <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-1 p-1 bg-[#11310C]/5 rounded-2xl border border-[#11310C]/10 max-w-full flex-wrap sm:flex-nowrap">
+              <div className="inline-flex items-center gap-0.5 p-0.5 rounded-xl border border-[#11310C]/12 max-w-full flex-wrap sm:flex-nowrap">
                 {/* Toggle Open Credit Card Cycle Months (+ Ciclo Cartão) */}
                 <button
                   type="button"
@@ -1067,15 +1061,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="divide-y divide-[#11310C]/8">
             {groupedTransactions.slice(0, 5).map((tx) => (
               <div
                 key={tx.id}
-                className="flex items-center justify-between p-3.5 rounded-2xl bg-white/80 hover:bg-white border border-[#11310C]/10 transition-all"
+                className="flex items-center justify-between py-3 px-1 hover:bg-[#11310C]/[0.03] transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
                       tx.type === 'income'
                         ? 'bg-emerald-100 text-emerald-800'
                         : tx.type === 'expense'
@@ -1137,11 +1131,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="divide-y divide-[#11310C]/8">
             {creditCards.map((card) => (
               <div
                 key={card.id}
-                className="p-3.5 rounded-2xl bg-white/90 border border-[#11310C]/10 space-y-2"
+                className="py-3 px-1 space-y-1.5"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-[#11310C]">{card.name}</span>

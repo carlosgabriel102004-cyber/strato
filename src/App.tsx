@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Header } from './components/Header';
-import { NavTabs } from './components/NavTabs';
+import { Sidebar } from './components/Sidebar';
 import { ManualRegistrationModal } from './components/ManualRegistrationModal';
 import { DashboardView } from './components/DashboardView';
 import { ResumoView } from './components/ResumoView';
@@ -633,7 +633,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9F3] text-[#11310C] font-sans selection:bg-[#C4C240] selection:text-[#11310C]">
+    <div className="min-h-screen bg-[#F8F9F3] text-[#11310C] font-sans selection:bg-[#C4C240] selection:text-[#11310C] pl-14">
       {syncError && (
         <div className="bg-[#E8402A] text-white text-xs font-semibold px-4 py-2 text-center">
           Não foi possível carregar seus dados: {syncError}{' '}
@@ -659,11 +659,10 @@ export function App() {
         onRefreshSheets={() => fetchLiveSheets()}
       />
 
-      {/* Main Navigation Tabs */}
-      <NavTabs activeTab={activeTab} onSelectTab={handleSelectTab} />
+      <Sidebar activeTab={activeTab} onSelectTab={handleSelectTab} />
 
       {/* Main Content Area */}
-      <main className="transition-all duration-300">
+      <main className="transition-all duration-300 pt-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
