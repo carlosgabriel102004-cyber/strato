@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Header } from './components/Header';
-import { NavTabs } from './components/NavTabs';
+import { AppBar } from './components/AppBar';
+import { OverviewView } from './components/OverviewView';
 import { ManualRegistrationModal } from './components/ManualRegistrationModal';
-import { DashboardView } from './components/DashboardView';
 import { ResumoView } from './components/ResumoView';
 import { InvestimentosView } from './components/InvestimentosView';
 import { CartoesAssinaturasView } from './components/CartoesAssinaturasView';
@@ -640,27 +639,15 @@ export function App() {
           <button className="underline font-bold" onClick={() => fetchLiveSheets()}>Tentar de novo</button>
         </div>
       )}
-      {/* Header Bar */}
-      <Header
+      <AppBar
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
         selectedMonth={selectedMonth}
-        onMonthChange={setSelectedMonth}
         monthsList={monthsList}
-        onOpenManualModal={() => setIsManualModalOpen(true)}
-        onNavigateToTab={handleSelectTab}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        transactions={transactions}
-        investments={investments}
-        creditCards={creditCards}
-        debtors={debtors}
-        googleUser={googleUser}
-        isLoggingIn={isLoggingIn}
-        onGoogleLogin={handleGoogleLogin}
-        onRefreshSheets={() => fetchLiveSheets()}
+        onMonthChange={setSelectedMonth}
+        onRefresh={() => fetchLiveSheets()}
+        onAdd={() => setIsManualModalOpen(true)}
       />
-
-      {/* Main Navigation Tabs */}
-      <NavTabs activeTab={activeTab} onSelectTab={handleSelectTab} />
 
       {/* Main Content Area */}
       <main className="transition-all duration-300">
@@ -673,20 +660,17 @@ export function App() {
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
             {activeTab === 'dashboard' && (
-              <DashboardView
-                currentMonthData={currentMonthSummary}
-                allMonthsData={monthsData}
-                recentTransactions={transactions}
-                creditCards={creditCards.map((card) => ({
-                  ...card,
-                  isPaid: Boolean(cardInvoicePayments[getCardInvoicePaymentKey(card.name, getCurrentMonthLabel())]),
-                }))}
-                subscriptions={subscriptions}
+              <OverviewView
                 selectedMonth={selectedMonth}
-                onNavigateToTab={handleSelectTab}
-                onOpenManualModal={() => setIsManualModalOpen(true)}
-                onUpdateMonthData={handleUpdateMonthSummary}
-                taxSettings={taxSettings}
+                onSelectMonth={setSelectedMonth}
+                transactions={transactions}
+                creditCards={creditCards}
+                subscriptions={subscriptions}
+                cardInvoicePayments={cardInvoicePayments}
+                allMonthsData={monthsData}
+                investments={investments}
+                exchanges={exchanges}
+                usdRate={usdRate}
               />
             )}
 
