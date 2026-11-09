@@ -74,10 +74,10 @@ export const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 space-y-6 pb-12">
       {/* Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card rounded-3xl p-6 border border-white/90">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
-            Configurações do <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Sistema</span>
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+            Configurações do <span className="italic font-medium text-[#11310C]/70">Sistema</span>
           </h1>
           <p className="text-xs text-[#11310C]/60 mt-1">
             Gerencie integrações, planilhas e preferências de impostos

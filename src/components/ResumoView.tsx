@@ -87,7 +87,7 @@ const CustomBarTooltip = ({ active, payload, label, liveInvestmentsTotal = 0, in
     const totalConsolidadoComAportes = withAportesTotal + liveInvestmentsTotal;
 
     return (
-      <div className="bg-[#11310C] border border-[#C4C240] px-4 py-3.5 rounded-2xl shadow-2xl text-[#FAFBF6] space-y-2 z-50 min-w-[280px]">
+      <div className="liquid-glass-tooltip px-4 py-3.5 rounded-2xl text-[#FAFBF6] space-y-2 z-50 min-w-[280px]">
         {/* Header line with Month and Year Badge */}
         <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-2">
           <p className="text-xs font-black text-[#C4C240] uppercase tracking-wider">{monthName}</p>
@@ -434,10 +434,10 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 space-y-6 pb-12">
       {/* Header Banner */}
-      <div className="relative z-20 flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card rounded-3xl p-6 border border-white/90">
+      <div className="relative z-20 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
-            Total do <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Dinheiro</span> do Mês
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+            Total do <span className="italic font-medium text-[#11310C]/70">Dinheiro</span> do Mês
           </h1>
           <p className="text-xs text-[#11310C]/70 mt-1">
             Sua planilha de caixa central consolida o patrimônio total, saldos de contas e previsão de rendimentos.
@@ -489,14 +489,14 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
       </div>
 
       {/* Main Metric Spotlight Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-[#11310C]/10">
         {/* Card 1: Saldo Total das Contas */}
-        <div className="glass-card rounded-3xl p-6 border border-white/90 flex flex-col justify-between space-y-4">
+        <div className="p-6 flex flex-col justify-between space-y-4">
           <div>
             <span className="text-xs font-bold text-[#11310C]/60 uppercase tracking-wider block mb-1">
               Saldo das Contas Bancárias
             </span>
-            <div className="text-3xl font-extrabold text-[#11310C]">
+            <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
               {formatCurrency(bankAccountsBalance)}
             </div>
             <p className="text-xs text-[#11310C]/70 mt-1 font-medium">
@@ -510,12 +510,12 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
         </div>
 
         {/* Card 2: Valor Total de Investimentos */}
-        <div className="glass-card rounded-3xl p-6 border border-white/90 flex flex-col justify-between space-y-4">
+        <div className="p-6 flex flex-col justify-between space-y-4">
           <div>
             <span className="text-xs font-bold text-[#11310C]/60 uppercase tracking-wider block mb-1">
               Soma dos Investimentos
             </span>
-            <div className="text-3xl font-extrabold text-[#11310C]">
+            <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
               {formatCurrency(liveInvestmentsTotal)}
             </div>
             <p className="text-xs text-[#11310C]/70 mt-1 font-medium">
@@ -536,7 +536,7 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
         </div>
 
         {/* Card 3: Total do Dinheiro Consolidado */}
-        <div className="glass-dark-card rounded-3xl p-6 text-[#FAFBF6] space-y-3 relative overflow-hidden glaze-shine flex flex-col justify-between">
+        <div className="bg-[#11310C] p-6 text-[#FAFBF6] space-y-3 relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-extrabold uppercase tracking-widest text-[#C4C240]">
@@ -544,7 +544,7 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
               </span>
               <Sparkles className="w-5 h-5 text-[#C4C240]" />
             </div>
-            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mt-2">
+            <div className="text-3xl sm:font-serif text-3xl sm:text-[34px] font-semibold tracking-tight text-white mt-2">
               {formatCurrency(consolidatedTotalMoney)}
             </div>
           </div>

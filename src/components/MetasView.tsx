@@ -28,6 +28,7 @@ interface MetasViewProps {
   onAddGoal: (goal: Omit<FinancialGoal, 'id'>) => void;
   onUpdateGoalProgress: (id: string, additionalAmount: number) => void;
   accountOptions?: AccountOption[];
+  newGoalRequest?: number;
 }
 
 export const MetasView: React.FC<MetasViewProps> = ({
@@ -35,8 +36,10 @@ export const MetasView: React.FC<MetasViewProps> = ({
   onAddGoal,
   onUpdateGoalProgress,
   accountOptions,
+  newGoalRequest = 0,
 }) => {
   const [isNewGoalModalOpen, setIsNewGoalModalOpen] = useState(false);
+  React.useEffect(() => { if (newGoalRequest > 0) handleOpenModal(); }, [newGoalRequest]);
   const [selectedGoalForAi, setSelectedGoalForAi] = useState<FinancialGoal | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isCalculatingAi, setIsCalculatingAi] = useState(false);
@@ -199,30 +202,23 @@ export const MetasView: React.FC<MetasViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 space-y-6 pb-12">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-card rounded-3xl p-6 border border-white/90">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
-            Minhas <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Metas</span> & Inteligência Artificial
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+            Minhas <span className="italic font-medium text-[#11310C]/70">Metas</span> & Inteligência Artificial
           </h1>
         </div>
 
-        <button
-          onClick={handleOpenModal}
-          className="liquid-button flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Criar Nova Meta</span>
-        </button>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-[#11310C]/10">
         {/* Card 1 */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider block mb-2">
             Acumulado em Metas
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(totalGoalCurrent)}
           </div>
           <p className="text-[11px] text-[#11310C]/60 mt-2 font-medium">
@@ -231,11 +227,11 @@ export const MetasView: React.FC<MetasViewProps> = ({
         </div>
 
         {/* Card 2 */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider block mb-2">
             Progresso Geral
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {overallGoalProgress}%
           </div>
           <div className="w-full bg-[#11310C]/10 h-2.5 rounded-full overflow-hidden mt-2">
@@ -247,12 +243,12 @@ export const MetasView: React.FC<MetasViewProps> = ({
         </div>
 
         {/* Card 3 */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 bg-gradient-to-br from-white via-white to-[#F7F9E3]/50">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C] uppercase tracking-wider block mb-2 flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5 text-[#C4C240]" />
             Aporte Mensal Previsto
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(goals.reduce((a, g) => a + (g.monthlyContribution || 0), 0))}
           </div>
           <p className="text-[11px] text-[#11310C]/70 mt-2 font-medium">

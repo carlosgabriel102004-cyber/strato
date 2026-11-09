@@ -254,11 +254,11 @@ export const ExtratoView: React.FC<ExtratoViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 space-y-8 pb-16">
       {/* Top Banner / Header with Summary Indicators */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 glass-card rounded-3xl p-6 sm:p-8 border border-[#11310C]/06">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-1">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
-              Extrato de <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Transações</span>
+            <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+              Extrato de <span className="italic font-medium text-[#11310C]/70">Transações</span>
             </h1>
           </div>
           <p className="text-xs text-[#11310C]/70 mt-1">

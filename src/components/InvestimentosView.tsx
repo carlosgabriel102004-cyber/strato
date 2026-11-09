@@ -42,7 +42,7 @@ const CustomPieTooltip = ({ active, payload, totalValue }: any) => {
     const data = payload[0];
     const pct = totalValue > 0 ? ((data.value / totalValue) * 100).toFixed(1) : '0';
     return (
-      <div className="bg-[#11310C] text-[#FAFBF6] border border-[#C4C240] px-3.5 py-2.5 rounded-2xl shadow-xl text-xs font-bold space-y-1 pointer-events-none z-50">
+      <div className="liquid-glass-tooltip text-[#FAFBF6] px-3.5 py-2.5 rounded-2xl text-xs font-bold space-y-1 pointer-events-none z-50">
         <p className="text-[#C4C240] font-extrabold text-xs">{data.name}</p>
         <p className="text-white text-xs">
           {formatCurrency(Number(data.value))} ({pct}%)
@@ -132,10 +132,10 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 space-y-6 pb-12">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-card rounded-3xl p-6 border border-white/90">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
-            Meus <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Investimentos</span> & Câmbio
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+            Meus <span className="italic font-medium text-[#11310C]/70">Investimentos</span> & Câmbio
           </h1>
         </div>
 
@@ -149,13 +149,13 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
       </div>
 
       {/* Top Investment Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-[#11310C]/10">
         {/* Card 1: Posição Intacta em Dólares (USD $) */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 bg-gradient-to-br from-white via-white to-emerald-50/50">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider mb-2 block">
             Valor bruto em USD ($)
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-900">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-emerald-900">
             $ {totalUsdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-[11px] font-medium text-[#11310C]/70 mt-2">
@@ -164,11 +164,11 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
         </div>
 
         {/* Card 2: Valor Bruto Convertido em R$ sem IOF */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider block mb-2">
             Valor bruto em R$ ({usdExchangeRateCommercial.toFixed(2)})
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(totalBrlCommercial)}
           </div>
           <p className="text-[11px] font-medium text-[#11310C]/60 mt-2">
@@ -177,11 +177,11 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
         </div>
 
         {/* Card 3: Valor Líquido pós-IOF/Spread em R$ */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 bg-gradient-to-br from-white via-white to-amber-50/40">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider block mb-2">
             Líquido pós-IOF/Spread (R$)
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(totalBrlAvenueNet)}
           </div>
           <p className="text-[11px] font-medium text-amber-900 mt-2">
@@ -190,7 +190,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
         </div>
 
         {/* Card 4: Lucro Acumulado (Estética Dinheiro Total Consolidado) */}
-        <div className="glass-dark-card rounded-3xl p-5 text-[#FAFBF6] space-y-3 relative overflow-hidden glaze-shine flex flex-col justify-between">
+        <div className="bg-[#11310C] p-5 text-[#FAFBF6] space-y-3 relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-extrabold uppercase tracking-widest text-[#C4C240] flex items-center gap-1.5">
@@ -201,7 +201,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
                 {formatPercent(overallYield)}
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mt-2">
+            <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight tracking-tight text-white mt-2">
               {formatCurrency(totalProfit)}
             </div>
           </div>
@@ -230,27 +230,27 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="rounded-2xl bg-[#11310C] text-[#FAFBF6] p-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 rounded-2xl border border-[#11310C]/10 overflow-hidden divide-x divide-[#11310C]/10">
+              <div className="bg-[#11310C] text-[#FAFBF6] p-4">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#C4C240]">Dólar médio</span>
                 <div className="text-2xl font-extrabold mt-1">R$ {exchangeSummary.averageRate.toFixed(4).replace('.', ',')}</div>
                 <p className={`text-[11px] font-semibold mt-1 ${rateDiffPct >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                   Hoje R$ {usdExchangeRateCommercial.toFixed(2).replace('.', ',')} ({rateDiffPct >= 0 ? '+' : ''}{rateDiffPct.toFixed(1).replace('.', ',')}%)
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#11310C]/5 border border-[#11310C]/10 p-4">
+              <div className="p-4">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#11310C]/60">Total enviado</span>
                 <div className="text-xl font-extrabold text-[#11310C] mt-1">{formatCurrency(exchangeSummary.totalBrl)}</div>
                 <p className="text-[11px] font-medium text-[#11310C]/60 mt-1">Taxas: {formatCurrency(exchangeSummary.totalFees)}</p>
               </div>
-              <div className="rounded-2xl bg-[#11310C]/5 border border-[#11310C]/10 p-4">
+              <div className="p-4">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#11310C]/60">Dólares comprados</span>
                 <div className="text-xl font-extrabold text-emerald-900 mt-1">
                   $ {exchangeSummary.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <p className="text-[11px] font-medium text-[#11310C]/60 mt-1">Carteira hoje: $ {totalUsdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
-              <div className="rounded-2xl bg-[#11310C]/5 border border-[#11310C]/10 p-4">
+              <div className="p-4">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#11310C]/60">Ganho no câmbio</span>
                 <div className={`text-xl font-extrabold mt-1 ${fxGain >= 0 ? 'text-emerald-800' : 'text-[#E13513]'}`}>
                   {fxGain >= 0 ? '+' : ''}{formatCurrency(fxGain)}
@@ -425,7 +425,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
           {/* Asset Names Written Out in Full Side-by-Side on the Right */}
           <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 max-h-64 overflow-y-auto pr-2">
             {pieData.map((item, idx) => (
-              <div key={item.name} className="flex items-center justify-between text-xs font-bold p-2 rounded-xl bg-white/60 border border-[#11310C]/05">
+              <div key={item.name} className="flex items-center justify-between text-xs font-semibold py-2 border-b border-[#11310C]/8">
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
                   <span
                     className="w-3 h-3 rounded-full flex-shrink-0"

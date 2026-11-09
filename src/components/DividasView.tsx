@@ -53,24 +53,24 @@ export const DividasView: React.FC<DividasViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 space-y-6 pb-12">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-card rounded-3xl p-6 border border-white/90">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
-            Meus <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Devedores</span> & Empréstimos Concedidos
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+            Meus <span className="italic font-medium text-[#11310C]/70">Devedores</span> & Empréstimos Concedidos
           </h1>
         </div>
 
       </div>
 
       {/* Top Cards for Devedores Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-[#11310C]/10">
         {/* Card 1: Total Pegou (Emprestado) */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 bg-gradient-to-br from-white via-white to-amber-50/40">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider block mb-2 flex items-center justify-between">
             <span>Total Emprestado (Pegou)</span>
             <ArrowDownRight className="w-4 h-4 text-amber-700" />
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-amber-900">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-amber-900">
             {formatCurrency(totalPegouOverall)}
           </div>
           <p className="text-[11px] text-[#11310C]/60 mt-2 font-medium">
@@ -79,12 +79,12 @@ export const DividasView: React.FC<DividasViewProps> = ({
         </div>
 
         {/* Card 2: Total Pagou (Devolvido) */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90 bg-gradient-to-br from-white via-white to-emerald-50/50">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider block mb-2 flex items-center justify-between">
             <span>Total Devolvido (Pagou)</span>
             <ArrowUpRight className="w-4 h-4 text-emerald-700" />
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-800">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-emerald-800">
             {formatCurrency(totalPagouOverall)}
           </div>
           <p className="text-[11px] text-[#11310C]/60 mt-2 font-medium">
@@ -93,12 +93,12 @@ export const DividasView: React.FC<DividasViewProps> = ({
         </div>
 
         {/* Card 3: Saldo Restante a Receber */}
-        <div className="glass-card rounded-3xl p-5 border border-[#C4C240]/60 bg-gradient-to-br from-white via-white to-[#F7F9E3]/50">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C] uppercase tracking-wider block mb-2 flex items-center justify-between">
             <span>Falta Receber (Restante)</span>
             <Receipt className="w-4 h-4 text-[#11310C]" />
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(totalRestanteOverall)}
           </div>
           <p className="text-[11px] text-[#11310C]/80 font-bold mt-2">
@@ -107,12 +107,12 @@ export const DividasView: React.FC<DividasViewProps> = ({
         </div>
 
         {/* Card 4: Dívidas Próprias Passivas */}
-        <div className="glass-card rounded-3xl p-5 border border-white/90">
+        <div className="p-5">
           <span className="text-xs font-bold text-[#11310C]/70 uppercase tracking-wider block mb-2 flex items-center justify-between">
             <span>Minhas Dívidas Próprias</span>
             <ArrowDownRight className="w-4 h-4 text-[#E13513]" />
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#E13513]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#E13513]">
             {formatCurrency(totalDebtsRemaining)}
           </div>
           <p className="text-[11px] text-[#11310C]/60 mt-2 font-medium">

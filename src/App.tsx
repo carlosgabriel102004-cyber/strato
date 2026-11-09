@@ -106,6 +106,7 @@ export function App() {
   const handleSelectTab = (tabId: string) => {
     // pedidos de abrir formulário valem só para a página onde foram feitos
     setSubscriptionRequest(0);
+    setGoalRequest(0);
     setResumoRequest(null);
     setActiveTab(tabId);
     if (tabId === 'extrato') {
@@ -162,6 +163,7 @@ export function App() {
   const [balanceAccounts, setBalanceAccounts] = useState<{ id: string; name: string; archived?: boolean }[]>([]);
   const [activeForm, setActiveForm] = useState<null | 'exchange' | 'stock' | 'debtor' | 'card'>(null);
   const [subscriptionRequest, setSubscriptionRequest] = useState(0);
+  const [goalRequest, setGoalRequest] = useState(0);
   const [resumoRequest, setResumoRequest] = useState<{ type: 'balances' | 'accounts'; n: number } | null>(null);
   const [netUsdRate, setNetUsdRate] = useState<number>(5.401);
 
@@ -638,6 +640,11 @@ export function App() {
           { label: 'Nova assinatura ou conta fixa', onClick: () => setSubscriptionRequest((n) => n + 1) },
           { label: 'Lançamento no extrato', onClick: openManual },
         ]
+      : activeTab === 'metas'
+      ? [
+          { label: 'Nova meta', onClick: () => setGoalRequest((n) => n + 1) },
+          { label: 'Lançamento no extrato', onClick: openManual },
+        ]
       : activeTab === 'resumo'
       ? [
           { label: 'Lançar saldos do próximo mês', hint: 'Saldo de cada conta e caixinha', onClick: () => setResumoRequest((r) => ({ type: 'balances', n: (r?.n || 0) + 1 })) },
@@ -789,6 +796,7 @@ export function App() {
                 goals={goals}
                 onAddGoal={handleAddGoal}
                 onUpdateGoalProgress={handleUpdateGoalProgress}
+                newGoalRequest={goalRequest}
                 accountOptions={
                   (currentMonthSummary.accountColumnsMeta && currentMonthSummary.accountColumnsMeta.length > 0)
                     ? currentMonthSummary.accountColumnsMeta.map((col) => ({

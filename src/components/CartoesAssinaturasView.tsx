@@ -179,32 +179,32 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-6 lg:px-12 space-y-10 pb-16">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 glass-card rounded-3xl p-8 border border-[#11310C]/06">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
-            Faturas de <span className="font-serif italic font-bold text-3xl sm:text-4xl text-[#C4C240]">Cartões</span> & Assinaturas Fixas
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#11310C] tracking-tight">
+            Faturas de <span className="italic font-medium text-[#11310C]/70">Cartões</span> & Assinaturas Fixas
           </h1>
         </div>
 
       </div>
 
       {/* Top Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="glass-card rounded-3xl p-7 border border-[#11310C]/06">
+      <div className="grid grid-cols-1 sm:grid-cols-3 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-[#11310C]/10">
+        <div className="p-7">
           <span className="text-[11px] font-bold text-[#11310C]/60 uppercase tracking-wider block mb-2">
             Total em Faturas Abertas
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(totalInvoices)}
           </div>
           <p className="text-[11px] text-[#11310C]/60 mt-2 font-medium">Consolidado dos cartões pendentes</p>
         </div>
 
-        <div className="glass-card rounded-3xl p-7 border border-[#11310C]/06">
+        <div className="p-7">
           <span className="text-[11px] font-bold text-[#11310C]/60 uppercase tracking-wider block mb-2">
             Total Assinaturas Ativas
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#11310C]">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-[#11310C]">
             {formatCurrency(totalSubscriptionsMonthly)}
           </div>
           <p className="text-[11px] text-[#11310C]/60 mt-2 font-medium">
@@ -212,11 +212,11 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
           </p>
         </div>
 
-        <div className="glass-card rounded-3xl p-7 border border-[#11310C]/06">
+        <div className="p-7">
           <span className="text-[11px] font-bold text-[#11310C]/60 uppercase tracking-wider block mb-2">
             Economia por Assinaturas Pausadas
           </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-amber-800">
+          <div className="font-serif text-3xl sm:text-[32px] font-semibold tracking-tight text-amber-800">
             {formatCurrency(totalPausedMonthly)} /mês
           </div>
           <p className="text-[11px] text-[#11310C]/60 mt-2 font-medium truncate">
