@@ -75,8 +75,8 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md transition-all">
-      <div className="relative w-full max-w-lg glass-card rounded-3xl p-6 sm:p-8 border border-white/80 shadow-2xl animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#11310C]/25 transition-all">
+      <div className="relative w-full max-w-lg bg-[#FCFCFA] rounded-2xl p-6 sm:p-7 border border-[#11310C]/10 shadow-[0_24px_60px_-20px_rgba(17,49,12,0.35)] animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 mb-5 border-b border-[#11310C]/10">
           <div className="flex items-center gap-3">
@@ -88,7 +88,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                 Novo <span className="font-serif italic font-bold text-xl text-[#C4C240]">Lançamento</span> Manual
               </h3>
               <p className="text-xs text-[#11310C]/60">
-                Sincronização imediata com a planilha de {selectedMonth}
+                Salvo no seu banco de dados · {selectedMonth}
               </p>
             </div>
           </div>
@@ -136,7 +136,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   onClick={() => setType('expense')}
                   className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold transition-all cursor-pointer ${
                     type === 'expense'
-                      ? 'bg-[#E13513] text-white shadow-xs'
+                      ? 'bg-[#11310C] text-[#FAFBF6] shadow-xs'
                       : 'text-[#11310C]/70 hover:text-[#11310C]'
                   }`}
                 >
@@ -299,7 +299,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 rounded-2xl liquid-button font-extrabold text-xs text-[#11310C] flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 rounded-lg bg-[#11310C] hover:bg-[#11310C]/90 font-semibold text-[13px] text-[#FAFBF6] flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <span>Salvando...</span>

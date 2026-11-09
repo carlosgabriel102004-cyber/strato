@@ -27,7 +27,7 @@ import {
 } from './data/mockData';
 import { CurrencyExchange, Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment, NewRecurringCharge } from './types';
 import { initAuth, googleSignIn, logout, parseAuthError } from './lib/auth';
-import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid, insertExchange, addStockPurchase, insertDebtorEntry, insertCard, saveBalanceSnapshot } from './lib/financeRepository';
+import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid, insertExchange, addStockPurchase, insertDebtorEntry, insertCard, saveBalanceSnapshot, createBalanceAccount, updateBalanceAccount, deleteBalanceAccount } from './lib/financeRepository';
 import { QuickForm, parseMoney } from './components/QuickForm';
 import { LoginScreen } from './components/LoginScreen';
 import { PaymentRemindersModal } from './components/PaymentRemindersModal';
@@ -156,7 +156,7 @@ export function App() {
   );
   const [usdRate, setUsdRate] = useState<number>(5.50);
   const [exchanges, setExchanges] = useState<CurrencyExchange[]>([]);
-  const [balanceAccounts, setBalanceAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [balanceAccounts, setBalanceAccounts] = useState<{ id: string; name: string; archived?: boolean }[]>([]);
   const [activeForm, setActiveForm] = useState<null | 'exchange' | 'stock' | 'debtor' | 'card'>(null);
   const [netUsdRate, setNetUsdRate] = useState<number>(5.401);
 
@@ -731,6 +731,9 @@ export function App() {
                   await saveBalanceSnapshot(date, values, previousDate);
                   await fetchLiveSheets();
                 }}
+                onCreateAccount={async (name) => { await createBalanceAccount(name); await fetchLiveSheets(); }}
+                onUpdateAccount={async (id, changes) => { await updateBalanceAccount(id, changes); await fetchLiveSheets(); }}
+                onDeleteAccount={async (id) => { await deleteBalanceAccount(id); await fetchLiveSheets(); }}
               />
             )}
 

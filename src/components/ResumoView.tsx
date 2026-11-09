@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { CustomSelect } from './CustomSelect';
 import { QuickForm, parseMoney } from './QuickForm';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Archive, ArchiveRestore, Trash2, X as CloseIcon, Wallet } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -36,9 +36,27 @@ interface ResumoViewProps {
   monthsList: string[];
   investments?: Investment[];
   goals?: FinancialGoal[];
-  balanceAccounts?: { id: string; name: string }[];
+  balanceAccounts?: { id: string; name: string; archived?: boolean }[];
   onSaveBalances?: (date: string, values: Record<string, number | null>, previousDate?: string) => Promise<void>;
+  onCreateAccount?: (name: string) => Promise<void>;
+  onUpdateAccount?: (id: string, changes: { name?: string; archived?: boolean }) => Promise<void>;
+  onDeleteAccount?: (id: string) => Promise<void>;
 }
+
+// "cofrinho pj nu (100%)" -> { base: 'cofrinho pj nu', rate: '100' }
+const splitAccountName = (name: string) => {
+  const m = name.match(/^(.*?)\s*\((\d+(?:[.,]\d+)?)%\)\s*$/);
+  if (m) return { base: m[1], rate: m[2] };
+  const v = name.match(/^(.*?)\s*\((vari[aá]vel)\)\s*$/i);
+  if (v) return { base: v[1], rate: 'variável' };
+  return { base: name, rate: '0' };
+};
+const joinAccountName = (base: string, rate: string) => {
+  const r = (rate || '').trim().toLowerCase();
+  if (r.startsWith('vari')) return `${base.trim()} (variavel)`;
+  const n = r.replace('%', '').replace(',', '.');
+  return `${base.trim()} (${Number(n) ? Number(n).toString().replace('.', ',') : '0'}%)`;
+};
 
 const MONTHS_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const brToIso = (br: string) => {
@@ -127,9 +145,16 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
   goals = [],
   balanceAccounts = [],
   onSaveBalances,
+  onCreateAccount,
+  onUpdateAccount,
+  onDeleteAccount,
 }) => {
+  const [accountsOpen, setAccountsOpen] = useState(false);
+  const [accountForm, setAccountForm] = useState<null | { id?: string; base: string; rate: string }>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const activeAccounts = balanceAccounts.filter((a) => !a.archived);
   const [includeAportes, setIncludeAportes] = useState<boolean>(false);
-  const [balanceForm, setBalanceForm] = useState<null | { title: string; initial: Record<string, string>; previousDate?: string }>(null);
+  const [balanceForm, setBalanceForm] = useState<null | { title: string; initial: Record<string, string>; previousDate?: string; accounts: { id: string; name: string }[] }>(null);
 
   // Live real-time investment total calculation
   const liveInvestmentsTotal =
@@ -658,16 +683,26 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
           const sameMonth = today.getFullYear() * 12 + today.getMonth() === nextKey;
           const defaultDate = sameMonth ? today.toISOString().slice(0, 10) : `${Math.floor(nextKey / 12)}-${String((nextKey % 12) + 1).padStart(2, '0')}-05`;
           const initial: Record<string, string> = { date: defaultDate };
-          balanceAccounts.forEach((a) => { initial[a.id] = moneyText(last?.balances?.[a.name]); });
+          activeAccounts.forEach((a) => { initial[a.id] = moneyText(last?.balances?.[a.name]); });
           return (
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-[#11310C]/55">Último saldo lançado: <strong className="text-[#11310C]">{last ? `${last.monthLabel} (${last.date})` : '—'}</strong></p>
-              <button
-                onClick={() => setBalanceForm({ title: `Saldos de ${nextLabel}`, initial })}
-                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#11310C] text-[#FAFBF6] text-xs font-semibold cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" /> Lançar saldos de {nextLabel.split(' ')[0].toLowerCase()}
-              </button>
+              <div className="flex items-center gap-2">
+                {onUpdateAccount && (
+                  <button
+                    onClick={() => { setAccountError(null); setAccountsOpen(true); }}
+                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-[#11310C]/15 text-[#11310C] text-xs font-semibold hover:bg-[#11310C]/5 cursor-pointer"
+                  >
+                    <Wallet className="w-3.5 h-3.5" /> Contas e caixinhas
+                  </button>
+                )}
+                <button
+                  onClick={() => setBalanceForm({ title: `Saldos de ${nextLabel}`, initial, accounts: activeAccounts })}
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#11310C] text-[#FAFBF6] text-xs font-semibold cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Lançar saldos de {nextLabel.split(' ')[0].toLowerCase()}
+                </button>
+              </div>
             </div>
           );
         })()}
@@ -807,7 +842,7 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
                               e.stopPropagation();
                               const initial: Record<string, string> = { date: brToIso(row.date) };
                               balanceAccounts.forEach((a) => { initial[a.id] = moneyText(row.balances?.[a.name]); });
-                              setBalanceForm({ title: `Editar saldos de ${row.monthLabel}`, initial, previousDate: brToIso(row.date) });
+                              setBalanceForm({ title: `Editar saldos de ${row.monthLabel}`, initial, previousDate: brToIso(row.date), accounts: balanceAccounts });
                             }}
                             className="ml-1 p-1 rounded-md text-[#11310C]/40 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"
                           >
@@ -849,6 +884,76 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
         </div>
       </div>
 
+      {accountsOpen && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-[#11310C]/25" onClick={() => setAccountsOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#FCFCFA] rounded-2xl border border-[#11310C]/10 shadow-[0_24px_60px_-20px_rgba(17,49,12,0.35)]">
+            <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[#11310C]/8">
+              <div>
+                <h3 className="font-serif text-xl font-semibold text-[#11310C]">Contas e caixinhas</h3>
+                <p className="text-xs text-[#11310C]/55 mt-0.5">O % do CDI é usado nas previsões de rendimento.</p>
+              </div>
+              <button onClick={() => setAccountsOpen(false)} className="p-1.5 rounded-lg hover:bg-[#11310C]/5 cursor-pointer" aria-label="Fechar">
+                <CloseIcon className="w-4 h-4 text-[#11310C]/60" />
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto px-6 py-2 divide-y divide-[#11310C]/8">
+              {balanceAccounts.map((a) => {
+                const { base, rate } = splitAccountName(a.name);
+                return (
+                  <div key={a.id} className={`flex items-center gap-3 py-3 ${a.archived ? 'opacity-50' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-[#11310C] truncate">{base}</p>
+                      <p className="text-[11px] text-[#11310C]/55">{rate === 'variável' ? 'Rendimento variável' : `${rate}% do CDI`}{a.archived ? ' · arquivada' : ''}</p>
+                    </div>
+                    <button title="Editar nome e CDI" onClick={() => setAccountForm({ id: a.id, base, rate })} className="p-2 rounded-lg text-[#11310C]/50 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button
+                      title={a.archived ? 'Reativar' : 'Arquivar (some dos próximos lançamentos, mantém o histórico)'}
+                      onClick={async () => { try { setAccountError(null); await onUpdateAccount!(a.id, { archived: !a.archived }); } catch (e: any) { setAccountError(e.message); } }}
+                      className="p-2 rounded-lg text-[#11310C]/50 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"
+                    >
+                      {a.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      title="Excluir de vez (apaga o histórico desta conta)"
+                      onClick={async () => {
+                        if (!window.confirm(`Excluir "${base}" de vez? Todo o histórico de saldos dela será apagado. Para só esconder dos próximos meses, use Arquivar.`)) return;
+                        try { setAccountError(null); await onDeleteAccount!(a.id); } catch (e: any) { setAccountError(e.message); }
+                      }}
+                      className="p-2 rounded-lg text-[#11310C]/50 hover:text-[#E13513] hover:bg-[#E13513]/5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {accountError && <p className="px-6 pb-2 text-xs font-medium text-[#E13513]">{accountError}</p>}
+            <div className="flex justify-between items-center px-6 py-4 border-t border-[#11310C]/8">
+              <button onClick={() => setAccountForm({ base: '', rate: '100' })} className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#11310C] text-[#FAFBF6] text-xs font-semibold cursor-pointer">
+                <Plus className="w-3.5 h-3.5" /> Nova caixinha
+              </button>
+              <button onClick={() => setAccountsOpen(false)} className="h-9 px-4 rounded-lg text-[13px] font-medium text-[#11310C]/70 hover:bg-[#11310C]/5 cursor-pointer">Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <QuickForm
+        open={Boolean(accountForm)}
+        title={accountForm?.id ? 'Editar conta' : 'Nova caixinha'}
+        initial={accountForm ? { base: accountForm.base, rate: accountForm.rate } : undefined}
+        fields={[
+          { name: 'base', label: 'Nome', required: true, placeholder: 'cofrinho inter' },
+          { name: 'rate', label: '% do CDI', required: true, placeholder: '100', hint: 'Use 0 para conta sem rendimento, ou escreva "variável".' },
+        ]}
+        onClose={() => setAccountForm(null)}
+        onSubmit={async (v) => {
+          const name = joinAccountName(v.base, v.rate);
+          if (accountForm?.id) await onUpdateAccount!(accountForm.id, { name });
+          else await onCreateAccount!(name);
+        }}
+      />
+
       <QuickForm
         open={Boolean(balanceForm)}
         title={balanceForm?.title || ''}
@@ -857,12 +962,12 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
         submitLabel="Salvar saldos"
         fields={[
           { name: 'date', label: 'Data dos saldos', type: 'date', required: true },
-          ...balanceAccounts.map((a) => ({ name: a.id, label: a.name, type: 'money' as const, half: true, placeholder: '0,00' })),
+          ...(balanceForm?.accounts || []).map((a) => ({ name: a.id, label: a.name, type: 'money' as const, half: true, placeholder: '0,00' })),
         ]}
         onClose={() => setBalanceForm(null)}
         onSubmit={async (v) => {
           const values: Record<string, number | null> = {};
-          balanceAccounts.forEach((a) => {
+          (balanceForm?.accounts || []).forEach((a) => {
             const raw = (v[a.id] || '').trim();
             values[a.id] = raw ? parseMoney(raw) : null;
           });

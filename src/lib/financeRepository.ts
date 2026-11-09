@@ -94,7 +94,7 @@ export async function loadFinanceData() {
   applySharedSubscriptionShares(data);
   const autoPayIds = new Set(cards.filter((c) => c.auto_pay).map((c) => String(c.id)));
   data.cards = (data.cards || []).map((card: any) => ({ ...card, autoPay: autoPayIds.has(String(card.id)) }));
-  data.balanceAccounts = accounts.map((a: any) => ({ id: String(a.id), name: str(a.name) }));
+  data.balanceAccounts = accounts.map((a: any) => ({ id: String(a.id), name: str(a.name), archived: Boolean(a.archived) }));
   data.investmentPositions = investments.map((i: any) => ({ id: String(i.id), ticker: str(i.ticker), shares: Number(i.shares) || 0, averagePriceUsd: Number(i.average_price_usd) || 0 }));
   data.exchanges = exchanges.map((e: any) => ({
     id: String(e.id),
@@ -245,4 +245,20 @@ export async function saveBalanceSnapshot(date: string, values: Record<string, n
   const rows = Object.entries(values).map(([accountId, amount]) => ({ account_id: accountId, recorded_on: date, amount }));
   const { error } = await supabase.from('balance_snapshots').upsert(rows, { onConflict: 'account_id,recorded_on' });
   if (error) throw new Error(`Não foi possível salvar os saldos: ${error.message}`);
+}
+
+export async function createBalanceAccount(name: string) {
+  const { error } = await supabase.from('balance_accounts').insert({ name, sort_order: nextOrder() });
+  if (error) throw new Error(`Não foi possível criar a conta: ${error.message}`);
+}
+
+export async function updateBalanceAccount(id: string, changes: { name?: string; archived?: boolean }) {
+  const { error } = await supabase.from('balance_accounts').update(changes).eq('id', id);
+  if (error) throw new Error(`Não foi possível atualizar a conta: ${error.message}`);
+}
+
+/** Apaga a conta e todo o histórico de saldos dela. */
+export async function deleteBalanceAccount(id: string) {
+  const { error } = await supabase.from('balance_accounts').delete().eq('id', id);
+  if (error) throw new Error(`Não foi possível excluir a conta: ${error.message}`);
 }

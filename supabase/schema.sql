@@ -193,3 +193,6 @@ create policy "own rows select" on public.currency_exchanges for select to authe
 create policy "own rows insert" on public.currency_exchanges for insert to authenticated with check ((select auth.uid()) = user_id);
 create policy "own rows update" on public.currency_exchanges for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "own rows delete" on public.currency_exchanges for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- Accounts that were closed: hidden from new balance entries, history kept
+alter table public.balance_accounts add column archived boolean not null default false;
