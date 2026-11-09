@@ -399,10 +399,12 @@ export function buildFinanceData(rowsById: SheetRowsById, options: BuildFinanceD
 
             const isIncome = rawAmount > 0;
             const amount = Math.abs(rawAmount);
-            const isReimbursement = (cols[8] || '').trim().toLowerCase() === 'reembolso';
+            const kind = (cols[8] || '').trim().toLowerCase();
+            const isReimbursement = kind === 'reembolso';
+            const isContribution = kind === 'aporte'; // money moved into investments
 
-            if (isReimbursement) {
-              // control only: not a gain nor a cost
+            if (isReimbursement || isContribution) {
+              // not a gain nor a cost of the month
             } else if (isIncome) {
               liveTotalIncome += amount;
             } else if (amount > 0) {
@@ -434,7 +436,7 @@ export function buildFinanceData(rowsById: SheetRowsById, options: BuildFinanceD
               description,
               category,
               amount,
-              type: isReimbursement ? 'reembolso' : isIncome ? 'income' : 'expense',
+              type: isReimbursement ? 'reembolso' : isContribution ? 'investment' : isIncome ? 'income' : 'expense',
               account,
               paymentMethod,
               invoiceDueDateStr: explicitDueDateStr,

@@ -125,7 +125,7 @@ export async function insertTransaction(tx: Omit<Transaction, 'id'>) {
     payment_method: tx.paymentMethod || '',
     due_date: tx.invoiceDueDateStr || null,
     category: tx.category || null,
-    kind: tx.type === 'reembolso' ? 'reembolso' : 'normal',
+    kind: tx.type === 'reembolso' ? 'reembolso' : tx.type === 'investment' ? 'aporte' : 'normal',
     sort_order: Math.floor(Date.now() / 1000),
   });
   if (error) throw new Error(`Não foi possível salvar o lançamento: ${error.message}`);

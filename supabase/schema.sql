@@ -155,7 +155,7 @@ create trigger before_auth_user_created_allowlist
 
 -- 'reembolso' = only offsets a shared cost; kept for control, not counted as income/expense
 alter table public.transactions
-  add column kind text not null default 'normal' check (kind in ('normal', 'reembolso'));
+  add column kind text not null default 'normal' check (kind in ('normal', 'reembolso', 'aporte'));
 
 -- Card invoices: automatic debit flag and paid invoices per month
 alter table public.cards add column auto_pay boolean not null default false;
