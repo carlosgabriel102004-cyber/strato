@@ -1,4 +1,4 @@
-import { CreditCardSheet, Subscription, SubscriptionMonthPayment } from '../types';
+import { CreditCardSheet, Subscription, SubscriptionMonthPayment, Transaction } from '../types';
 import { getCardInvoicePaymentKey, getSubscriptionPaymentKey } from './subscriptions';
 
 export interface PaymentReminder {
@@ -8,6 +8,20 @@ export interface PaymentReminder {
   amount: number;
   dueDate: string;
   daysUntilDue: number;
+}
+
+const normalize = (value: string) =>
+  (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+/** True when the statement already has an expense for this service in the given month. */
+function isPaidInStatement(serviceName: string, today: Date, transactions: Transaction[]): boolean {
+  const name = normalize(serviceName);
+  if (!name) return false;
+  const monthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const pattern = new RegExp(`(^|[^a-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z0-9])`);
+  return transactions.some(
+    (tx) => tx.type === 'expense' && (tx.purchaseDate || tx.date || '').startsWith(monthPrefix) && pattern.test(normalize(tx.description))
+  );
 }
 
 function dueDateForDay(today: Date, day: number): Date {
@@ -23,7 +37,8 @@ export function buildPaymentReminders(
   subscriptions: Subscription[],
   subscriptionPayments: Record<string, SubscriptionMonthPayment>,
   cards: CreditCardSheet[],
-  paidCardInvoices: Record<string, boolean>
+  paidCardInvoices: Record<string, boolean>,
+  transactions: Transaction[] = []
 ): PaymentReminder[] {
   const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const reminders: PaymentReminder[] = [];
@@ -32,6 +47,7 @@ export function buildPaymentReminders(
     const isActive = subscription.status === 'ativa' || subscription.active;
     const paymentKey = getSubscriptionPaymentKey(subscription.serviceName, currentMonth);
     if (!isActive || subscription.monthlyPrice <= 0 || subscriptionPayments[paymentKey]?.paidDate) return;
+    if (isPaidInStatement(subscription.serviceName, today, transactions)) return;
 
     const dueDate = dueDateForDay(today, subscription.renewalDay);
     reminders.push({
@@ -46,7 +62,7 @@ export function buildPaymentReminders(
 
   cards.forEach((card) => {
     const paymentKey = getCardInvoicePaymentKey(card.name, currentMonth);
-    if (card.currentInvoice <= 0 || paidCardInvoices[paymentKey]) return;
+    if (card.autoPay || card.currentInvoice <= 0 || paidCardInvoices[paymentKey]) return;
 
     const dueDate = dueDateForDay(today, card.dueDay);
     reminders.push({

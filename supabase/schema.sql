@@ -156,3 +156,20 @@ create trigger before_auth_user_created_allowlist
 -- 'reembolso' = only offsets a shared cost; kept for control, not counted as income/expense
 alter table public.transactions
   add column kind text not null default 'normal' check (kind in ('normal', 'reembolso'));
+
+-- Card invoices: automatic debit flag and paid invoices per month
+alter table public.cards add column auto_pay boolean not null default false;
+create table public.card_invoice_payments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade default auth.uid(),
+  card_name text not null,
+  month text not null, -- e.g. 'Novembro 2026'
+  paid_at timestamptz not null default now(),
+  unique (user_id, card_name, month)
+);
+create index card_invoice_payments_user_idx on public.card_invoice_payments (user_id);
+alter table public.card_invoice_payments enable row level security;
+create policy "own rows select" on public.card_invoice_payments for select to authenticated using ((select auth.uid()) = user_id);
+create policy "own rows insert" on public.card_invoice_payments for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "own rows update" on public.card_invoice_payments for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "own rows delete" on public.card_invoice_payments for delete to authenticated using ((select auth.uid()) = user_id);

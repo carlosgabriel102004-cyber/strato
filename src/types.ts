@@ -33,6 +33,7 @@ export interface CreditCardSheet {
   limit: number;
   status?: 'aberta' | 'fechada';
   isPaid?: boolean;
+  autoPay?: boolean; // invoice paid by automatic debit: no payment reminder
 }
 
 export interface Subscription {

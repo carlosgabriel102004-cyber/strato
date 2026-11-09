@@ -2,6 +2,7 @@
 import { supabase } from './supabase';
 import { loadQuotes } from './quotes';
 import { buildFinanceData, SheetRowsById } from '../utils/sheetParser';
+import { getCardInvoicePaymentKey } from '../utils/subscriptions';
 import type { Transaction } from '../types';
 
 const str = (v: unknown) => (v === null || v === undefined ? '' : String(v));
@@ -19,7 +20,7 @@ async function selectAll<T = any>(table: string, order: string[] = ['sort_order'
  * tabs, so the existing business rules (card invoice dates, projections...) apply unchanged.
  */
 export async function loadFinanceData() {
-  const [transactions, cards, subscriptions, accounts, snapshots, debtors, investments, quotes] = await Promise.all([
+  const [transactions, cards, subscriptions, accounts, snapshots, debtors, investments, invoicePayments, quotes] = await Promise.all([
     selectAll('transactions'),
     selectAll('cards'),
     selectAll('subscriptions'),
@@ -27,6 +28,7 @@ export async function loadFinanceData() {
     selectAll('balance_snapshots', ['recorded_on']),
     selectAll('debtor_entries'),
     selectAll('investments'),
+    selectAll('card_invoice_payments', ['paid_at']),
     loadQuotes(),
   ]);
 
@@ -84,10 +86,23 @@ export async function loadFinanceData() {
     }),
   ];
 
-  return buildFinanceData(rows, {
+  const data: any = buildFinanceData(rows, {
     usdRate: quotes.usdRate ?? undefined,
     sourceMessage: 'Sincronizado com o banco de dados (Supabase)',
   });
+  const autoPayIds = new Set(cards.filter((c) => c.auto_pay).map((c) => String(c.id)));
+  data.cards = (data.cards || []).map((card: any) => ({ ...card, autoPay: autoPayIds.has(String(card.id)) }));
+  data.cardInvoicePayments = Object.fromEntries(
+    invoicePayments.map((p: any) => [getCardInvoicePaymentKey(p.card_name, p.month), true])
+  );
+  return data;
+}
+
+export async function setCardInvoicePaid(cardName: string, month: string, paid: boolean) {
+  const { error } = paid
+    ? await supabase.from('card_invoice_payments').upsert({ card_name: cardName, month }, { onConflict: 'user_id,card_name,month' })
+    : await supabase.from('card_invoice_payments').delete().eq('card_name', cardName).eq('month', month);
+  if (error) throw new Error(`Não foi possível salvar o pagamento da fatura: ${error.message}`);
 }
 
 export async function insertTransaction(tx: Omit<Transaction, 'id'>) {

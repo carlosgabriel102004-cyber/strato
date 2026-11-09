@@ -27,7 +27,7 @@ import {
 } from './data/mockData';
 import { Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment, NewRecurringCharge } from './types';
 import { initAuth, googleSignIn, logout, parseAuthError } from './lib/auth';
-import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit } from './lib/financeRepository';
+import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid } from './lib/financeRepository';
 import { LoginScreen } from './components/LoginScreen';
 import { PaymentRemindersModal } from './components/PaymentRemindersModal';
 import { buildPaymentReminders } from './utils/paymentReminders';
@@ -236,11 +236,13 @@ export function App() {
           setTransactions(data.transactions);
         }
 
+        const paidInvoices: Record<string, boolean> = data.cardInvoicePayments || {};
+        setCardInvoicePayments(paidInvoices);
         if (data.cards && Array.isArray(data.cards) && data.cards.length > 0) {
           const month = getCurrentMonthLabel();
           setCreditCards(data.cards.map((card: any) => ({
             ...card,
-            isPaid: Boolean(cardInvoicePaymentsRef.current[getCardInvoicePaymentKey(card.name, month)]),
+            isPaid: Boolean(paidInvoices[getCardInvoicePaymentKey(card.name, month)]),
           })));
         }
 
@@ -505,8 +507,8 @@ export function App() {
   const currentMonthSummary = monthsData[selectedMonth] || monthsData[getCurrentMonthLabel()] || monthsData['Setembro 2026'] || monthsData['Agosto 2026'];
 
   const paymentReminders = useMemo(
-    () => buildPaymentReminders(new Date(), getCurrentMonthLabel(), subscriptions, subscriptionPayments, creditCards, cardInvoicePayments),
-    [subscriptions, subscriptionPayments, creditCards, cardInvoicePayments]
+    () => buildPaymentReminders(new Date(), getCurrentMonthLabel(), subscriptions, subscriptionPayments, creditCards, cardInvoicePayments, transactions),
+    [subscriptions, subscriptionPayments, creditCards, cardInvoicePayments, transactions]
   );
   useEffect(() => {
     if (didInitialSync && !reminderShown.current) {
@@ -564,6 +566,11 @@ export function App() {
     const nextPaid = !cardInvoicePayments[key];
     setCardInvoicePayments((prev) => ({ ...prev, [key]: nextPaid }));
     setCreditCards((prevCards) => prevCards.map((item) => item.id === cardId ? { ...item, isPaid: nextPaid } : item));
+    setCardInvoicePaid(card.name, getCurrentMonthLabel(), nextPaid).catch((err) => {
+      console.error(err);
+      window.alert(err.message);
+      fetchLiveSheets();
+    });
   };
 
   const handleToggleSubscriptionStatus = (subId: string) => {
