@@ -32,10 +32,10 @@ export async function loadFinanceData() {
 
   const rows: SheetRowsById = {};
 
-  // Extrato: Data | Valor | Descrição | Conta | Tipo | Vencimento | Categoria | id
+  // Extrato: Data | Valor | Descrição | Conta | Tipo | Vencimento | Categoria | id | Natureza
   rows['sheet-extrato'] = [
-    ['Data', 'Valor', 'Descrição', 'Conta', 'Tipo', 'Vencimento', 'Categoria', 'id'],
-    ...transactions.map((t) => [str(t.date), str(t.amount), str(t.description), str(t.account), str(t.payment_method), str(t.due_date), str(t.category), str(t.id)]),
+    ['Data', 'Valor', 'Descrição', 'Conta', 'Tipo', 'Vencimento', 'Categoria', 'id', 'Natureza'],
+    ...transactions.map((t) => [str(t.date), str(t.amount), str(t.description), str(t.account), str(t.payment_method), str(t.due_date), str(t.category), str(t.id), str(t.kind)]),
   ];
 
   // Cartões: Cartão | Fecha | Vence | Limite | id
@@ -91,7 +91,7 @@ export async function loadFinanceData() {
 }
 
 export async function insertTransaction(tx: Omit<Transaction, 'id'>) {
-  const signed = tx.type === 'income' ? Math.abs(tx.amount) : -Math.abs(tx.amount);
+  const signed = tx.type === 'income' || tx.type === 'reembolso' ? Math.abs(tx.amount) : -Math.abs(tx.amount);
   const { error } = await supabase.from('transactions').insert({
     date: tx.date,
     amount: signed,
@@ -100,6 +100,7 @@ export async function insertTransaction(tx: Omit<Transaction, 'id'>) {
     payment_method: tx.paymentMethod || '',
     due_date: tx.invoiceDueDateStr || null,
     category: tx.category || null,
+    kind: tx.type === 'reembolso' ? 'reembolso' : 'normal',
     sort_order: Math.floor(Date.now() / 1000),
   });
   if (error) throw new Error(`Não foi possível salvar o lançamento: ${error.message}`);

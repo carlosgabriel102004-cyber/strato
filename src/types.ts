@@ -1,4 +1,6 @@
-export type TransactionType = 'income' | 'expense' | 'investment';
+// 'reembolso': money that only offsets a shared cost (e.g. someone paying their part of a
+// subscription). Kept in the statement for control, never counted as income or expense.
+export type TransactionType = 'income' | 'expense' | 'investment' | 'reembolso';
 
 export interface Transaction {
   id: string;

@@ -152,3 +152,7 @@ revoke execute on function public.enforce_signup_allowlist() from public, anon, 
 create trigger before_auth_user_created_allowlist
   before insert on auth.users
   for each row execute function public.enforce_signup_allowlist();
+
+-- 'reembolso' = only offsets a shared cost; kept for control, not counted as income/expense
+alter table public.transactions
+  add column kind text not null default 'normal' check (kind in ('normal', 'reembolso'));

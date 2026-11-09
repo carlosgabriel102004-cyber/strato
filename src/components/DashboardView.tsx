@@ -1109,7 +1109,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         : 'text-[#11310C]'
                     }`}
                   >
-                    {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
+                    {tx.type === 'income' || tx.type === 'reembolso' ? '+' : '-'} {formatCurrency(tx.amount)}
                   </div>
                   <span className="text-[9px] font-semibold text-[#11310C]/50">
                     {tx.sourceSheet}

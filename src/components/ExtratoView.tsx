@@ -462,6 +462,7 @@ export const ExtratoView: React.FC<ExtratoViewProps> = ({
               { id: 'income', label: 'Entradas' },
               { id: 'expense', label: 'Saídas' },
               { id: 'investment', label: 'Aportes' },
+              { id: 'reembolso', label: 'Reembolsos' },
             ].map((t) => (
               <button
                 key={t.id}
@@ -655,7 +656,7 @@ export const ExtratoView: React.FC<ExtratoViewProps> = ({
                               : 'text-[#11310C]'
                           }`}
                         >
-                          {tx.type === 'income' ? '+' : ''}
+                          {tx.type === 'income' || tx.type === 'reembolso' ? '+' : ''}
                           {formatCurrency(tx.type === 'expense' ? -Math.abs(tx.amount) : tx.amount)}
                         </div>
                       </div>
@@ -745,7 +746,7 @@ export const ExtratoView: React.FC<ExtratoViewProps> = ({
                             : 'text-[#11310C]'
                         }`}
                       >
-                        {tx.type === 'income' ? '+' : ''}
+                        {tx.type === 'income' || tx.type === 'reembolso' ? '+' : ''}
                         {formatCurrency(tx.type === 'expense' ? -Math.abs(tx.amount) : tx.amount)}
                       </td>
                     </tr>

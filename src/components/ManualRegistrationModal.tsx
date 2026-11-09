@@ -117,7 +117,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
               <label className="block text-[11px] font-bold text-[#11310C]/70 uppercase tracking-wider mb-2">
                 Tipo de Operação
               </label>
-              <div className="grid grid-cols-3 gap-2 p-1 bg-[#11310C]/5 rounded-2xl border border-[#11310C]/10">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 bg-[#11310C]/5 rounded-2xl border border-[#11310C]/10">
                 <button
                   type="button"
                   onClick={() => setType('income')}
@@ -154,6 +154,18 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   }`}
                 >
                   <span>Aporte</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setType('reembolso')}
+                  title="Dinheiro que só devolve parte de um custo (não conta como ganho)"
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    type === 'reembolso'
+                      ? 'bg-white text-[#11310C] shadow-xs'
+                      : 'text-[#11310C]/70 hover:text-[#11310C]'
+                  }`}
+                >
+                  <span>Reembolso</span>
                 </button>
               </div>
             </div>
