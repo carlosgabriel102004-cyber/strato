@@ -111,7 +111,7 @@ const CustomAreaTooltip = ({ active, payload, label }: any) => {
     const subscriptionNames: string[] = dataPoint?.subscriptionNames || [];
 
     return (
-      <div className="bg-[#11310C] border border-[#C4C240] p-3.5 rounded-2xl shadow-xl text-[#FAFBF6] space-y-1.5 z-50 min-w-[230px]">
+      <div className="liquid-glass-tooltip p-3.5 rounded-2xl text-[#FAFBF6] space-y-1.5 z-50 min-w-[230px]">
         <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-1.5">
           <p className="text-xs font-black text-[#C4C240] uppercase tracking-wider">{fullName}</p>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#C4C240]/20 text-[#C4C240]">
