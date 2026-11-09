@@ -173,3 +173,23 @@ create policy "own rows select" on public.card_invoice_payments for select to au
 create policy "own rows insert" on public.card_invoice_payments for insert to authenticated with check ((select auth.uid()) = user_id);
 create policy "own rows update" on public.card_invoice_payments for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "own rows delete" on public.card_invoice_payments for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- Currency exchanges (BRL -> USD) used to compute the average dollar rate
+create table public.currency_exchanges (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade default auth.uid(),
+  date date not null,
+  brl_amount numeric(14,2) not null,
+  brl_after_spread numeric(14,2),
+  usd_amount numeric(14,2) not null,
+  fees_brl numeric(14,2) not null default 0,
+  rate numeric(12,6),
+  provider text not null default '',
+  created_at timestamptz not null default now()
+);
+create index currency_exchanges_user_idx on public.currency_exchanges (user_id, date);
+alter table public.currency_exchanges enable row level security;
+create policy "own rows select" on public.currency_exchanges for select to authenticated using ((select auth.uid()) = user_id);
+create policy "own rows insert" on public.currency_exchanges for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "own rows update" on public.currency_exchanges for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "own rows delete" on public.currency_exchanges for delete to authenticated using ((select auth.uid()) = user_id);

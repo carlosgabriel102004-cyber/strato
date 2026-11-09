@@ -206,3 +206,13 @@ export interface NewRecurringCharge {
   paymentMethod: string;
   renewalDay: number;
 }
+
+export interface CurrencyExchange {
+  id: string;
+  date: string; // YYYY-MM-DD
+  brlAmount: number; // reais enviados
+  usdAmount: number; // dólares recebidos
+  feesBrl: number;
+  rate: number | null;
+  provider: string;
+}

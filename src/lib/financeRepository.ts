@@ -20,7 +20,7 @@ async function selectAll<T = any>(table: string, order: string[] = ['sort_order'
  * tabs, so the existing business rules (card invoice dates, projections...) apply unchanged.
  */
 export async function loadFinanceData() {
-  const [transactions, cards, subscriptions, accounts, snapshots, debtors, investments, invoicePayments, quotes] = await Promise.all([
+  const [transactions, cards, subscriptions, accounts, snapshots, debtors, investments, invoicePayments, exchanges, quotes] = await Promise.all([
     selectAll('transactions'),
     selectAll('cards'),
     selectAll('subscriptions'),
@@ -29,6 +29,7 @@ export async function loadFinanceData() {
     selectAll('debtor_entries'),
     selectAll('investments'),
     selectAll('card_invoice_payments', ['paid_at']),
+    selectAll('currency_exchanges', ['date']),
     loadQuotes(),
   ]);
 
@@ -92,6 +93,15 @@ export async function loadFinanceData() {
   });
   const autoPayIds = new Set(cards.filter((c) => c.auto_pay).map((c) => String(c.id)));
   data.cards = (data.cards || []).map((card: any) => ({ ...card, autoPay: autoPayIds.has(String(card.id)) }));
+  data.exchanges = exchanges.map((e: any) => ({
+    id: String(e.id),
+    date: String(e.date),
+    brlAmount: Number(e.brl_amount) || 0,
+    usdAmount: Number(e.usd_amount) || 0,
+    feesBrl: Number(e.fees_brl) || 0,
+    rate: e.rate === null ? null : Number(e.rate),
+    provider: str(e.provider),
+  }));
   data.cardInvoicePayments = Object.fromEntries(
     invoicePayments.map((p: any) => [getCardInvoicePaymentKey(p.card_name, p.month), true])
   );

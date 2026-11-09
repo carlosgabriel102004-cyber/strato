@@ -25,7 +25,7 @@ import {
   INITIAL_DEBTORS,
   INITIAL_FINANCIAL_GOALS,
 } from './data/mockData';
-import { Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment, NewRecurringCharge } from './types';
+import { CurrencyExchange, Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment, NewRecurringCharge } from './types';
 import { initAuth, googleSignIn, logout, parseAuthError } from './lib/auth';
 import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid } from './lib/financeRepository';
 import { LoginScreen } from './components/LoginScreen';
@@ -154,6 +154,7 @@ export function App() {
     loadFromStorage('strato_tax_settings', { enabled: false, percentage: 6.0 })
   );
   const [usdRate, setUsdRate] = useState<number>(5.50);
+  const [exchanges, setExchanges] = useState<CurrencyExchange[]>([]);
   const [netUsdRate, setNetUsdRate] = useState<number>(5.401);
 
   // Auto-save effects for persistence across navigation/sessions
@@ -236,6 +237,7 @@ export function App() {
           setTransactions(data.transactions);
         }
 
+        setExchanges(Array.isArray(data.exchanges) ? data.exchanges : []);
         const paidInvoices: Record<string, boolean> = data.cardInvoicePayments || {};
         setCardInvoicePayments(paidInvoices);
         if (data.cards && Array.isArray(data.cards) && data.cards.length > 0) {
@@ -706,6 +708,7 @@ export function App() {
                 investments={investments}
                 usdRate={usdRate}
                 netUsdRate={netUsdRate}
+                exchanges={exchanges}
                 onOpenManualModal={() => setIsManualModalOpen(true)}
               />
             )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   TrendingUp,
   PieChart as PieIcon,
@@ -18,15 +18,21 @@ import {
   Cell,
   Tooltip,
 } from 'recharts';
-import { Investment } from '../types';
+import { CurrencyExchange, Investment } from '../types';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 
 interface InvestimentosViewProps {
   investments: Investment[];
   usdRate?: number;
   netUsdRate?: number;
+  exchanges?: CurrencyExchange[];
   onOpenManualModal: () => void;
 }
+
+const formatDateShort = (iso: string) => {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+};
 
 const COLORS = ['#11310C', '#C4C240', '#4D7C0F', '#15803D', '#22C55E', '#166534', '#CA8A04'];
 
@@ -50,8 +56,17 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
   investments,
   usdRate = 5.14,
   netUsdRate,
+  exchanges = [],
   onOpenManualModal,
 }) => {
+  const [showAllExchanges, setShowAllExchanges] = useState(false);
+  const exchangeSummary = useMemo(() => {
+    const totalBrl = exchanges.reduce((acc, e) => acc + e.brlAmount, 0);
+    const totalUsd = exchanges.reduce((acc, e) => acc + e.usdAmount, 0);
+    const totalFees = exchanges.reduce((acc, e) => acc + e.feesBrl, 0);
+    return { totalBrl, totalUsd, totalFees, averageRate: totalUsd > 0 ? totalBrl / totalUsd : 0 };
+  }, [exchanges]);
+  const sortedExchanges = useMemo(() => [...exchanges].sort((a, b) => b.date.localeCompare(a.date)), [exchanges]);
   const usdExchangeRateCommercial = usdRate || 5.14; // USD commercial rate dynamically fetched from Investimentos!K1
   const avenueRepatriationFeePercent = 1.8; // ~1.4% spread + 0.38% IOF
   const netUsdRateAvenue = netUsdRate || (usdExchangeRateCommercial * (1 - avenueRepatriationFeePercent / 100)); // Dynamic Net BRL/USD rate
@@ -201,6 +216,93 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Câmbio: dólar médio de todas as remessas */}
+      {exchanges.length > 0 && (() => {
+        const valueAtAverage = totalUsdValue * exchangeSummary.averageRate;
+        const valueToday = totalUsdValue * usdExchangeRateCommercial;
+        const fxGain = valueToday - valueAtAverage;
+        const rateDiffPct = exchangeSummary.averageRate > 0 ? ((usdExchangeRateCommercial / exchangeSummary.averageRate) - 1) * 100 : 0;
+        const visible = showAllExchanges ? sortedExchanges : sortedExchanges.slice(0, 5);
+        return (
+          <div className="glass-card rounded-3xl p-6 border border-white/90 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#11310C]/10">
+              <div>
+                <h3 className="text-lg font-extrabold text-[#11310C]">
+                  Meu <span className="font-serif italic font-bold text-xl text-[#C4C240]">Dólar Médio</span>
+                </h3>
+                <p className="text-xs text-[#11310C]/60">Calculado a partir de {exchanges.length} câmbios (reais enviados ÷ dólares recebidos)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="rounded-2xl bg-[#11310C] text-[#FAFBF6] p-4">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#C4C240]">Dólar médio</span>
+                <div className="text-2xl font-extrabold mt-1">R$ {exchangeSummary.averageRate.toFixed(4).replace('.', ',')}</div>
+                <p className={`text-[11px] font-semibold mt-1 ${rateDiffPct >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                  Hoje R$ {usdExchangeRateCommercial.toFixed(2).replace('.', ',')} ({rateDiffPct >= 0 ? '+' : ''}{rateDiffPct.toFixed(1).replace('.', ',')}%)
+                </p>
+              </div>
+              <div className="rounded-2xl bg-[#11310C]/5 border border-[#11310C]/10 p-4">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#11310C]/60">Total enviado</span>
+                <div className="text-xl font-extrabold text-[#11310C] mt-1">{formatCurrency(exchangeSummary.totalBrl)}</div>
+                <p className="text-[11px] font-medium text-[#11310C]/60 mt-1">Taxas: {formatCurrency(exchangeSummary.totalFees)}</p>
+              </div>
+              <div className="rounded-2xl bg-[#11310C]/5 border border-[#11310C]/10 p-4">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#11310C]/60">Dólares comprados</span>
+                <div className="text-xl font-extrabold text-emerald-900 mt-1">
+                  $ {exchangeSummary.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <p className="text-[11px] font-medium text-[#11310C]/60 mt-1">Carteira hoje: $ {totalUsdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+              <div className="rounded-2xl bg-[#11310C]/5 border border-[#11310C]/10 p-4">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#11310C]/60">Ganho no câmbio</span>
+                <div className={`text-xl font-extrabold mt-1 ${fxGain >= 0 ? 'text-emerald-800' : 'text-[#E13513]'}`}>
+                  {fxGain >= 0 ? '+' : ''}{formatCurrency(fxGain)}
+                </div>
+                <p className="text-[11px] font-medium text-[#11310C]/60 mt-1">Carteira atual no dólar de hoje vs. no dólar médio</p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-wider text-[#11310C]/50 font-extrabold border-b border-[#11310C]/10">
+                    <th className="pb-2 text-left">Data</th>
+                    <th className="pb-2 text-right">Enviado</th>
+                    <th className="pb-2 text-right">Recebido</th>
+                    <th className="pb-2 text-right">Cotação</th>
+                    <th className="pb-2 text-right whitespace-nowrap">Taxas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((e) => (
+                    <tr key={e.id} className="border-b border-[#11310C]/5 font-semibold text-[#11310C]">
+                      <td className="py-2 whitespace-nowrap">
+                        {formatDateShort(e.date)}
+                        {e.provider && <span className="ml-1.5 text-[10px] font-bold text-[#11310C]/50">{e.provider}</span>}
+                      </td>
+                      <td className="py-2 text-right">{formatCurrency(e.brlAmount)}</td>
+                      <td className="py-2 text-right text-emerald-900">$ {e.usdAmount.toFixed(2)}</td>
+                      <td className="py-2 text-right">{e.usdAmount > 0 ? (e.brlAmount / e.usdAmount).toFixed(4).replace('.', ',') : '—'}</td>
+                      <td className="py-2 text-right text-[#11310C]/60">{formatCurrency(e.feesBrl)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {sortedExchanges.length > 5 && (
+              <button
+                type="button"
+                onClick={() => setShowAllExchanges((v) => !v)}
+                className="text-xs font-bold text-[#11310C] underline cursor-pointer"
+              >
+                {showAllExchanges ? 'Mostrar menos' : `Ver todos os ${sortedExchanges.length} câmbios`}
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 1. Investment List Table (Full Width Top Block) */}
       <div className="glass-card rounded-3xl p-6 border border-white/90 space-y-4">
