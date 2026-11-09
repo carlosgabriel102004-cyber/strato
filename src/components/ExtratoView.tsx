@@ -294,13 +294,6 @@ export const ExtratoView: React.FC<ExtratoViewProps> = ({
               <span className="hidden sm:inline">Exportar CSV</span>
             </button>
 
-            <button
-              onClick={onOpenManualModal}
-              className="liquid-button flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Novo Registro</span>
-            </button>
           </div>
         </div>
       </div>

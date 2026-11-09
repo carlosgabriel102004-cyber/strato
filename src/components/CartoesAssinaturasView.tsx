@@ -84,6 +84,7 @@ interface CartoesAssinaturasViewProps {
   subscriptionPayments: Record<string, SubscriptionMonthPayment>;
   onUpdateSubscriptionPayment?: (subscriptionId: string, month: string, update: Partial<SubscriptionMonthPayment>) => void;
   onAddRecurringCharge: (charge: NewRecurringCharge) => Promise<void>;
+  addSubscriptionRequest?: number;
 }
 
 export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
@@ -97,6 +98,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
   subscriptionPayments,
   onUpdateSubscriptionPayment,
   onAddRecurringCharge,
+  addSubscriptionRequest = 0,
 }) => {
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [tempLimit, setTempLimit] = useState<string>('');
@@ -109,6 +111,9 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
   const [newSubscriptionDay, setNewSubscriptionDay] = useState('');
   const [isSavingSubscription, setIsSavingSubscription] = useState(false);
   const [subscriptionFormError, setSubscriptionFormError] = useState('');
+  React.useEffect(() => {
+    if (addSubscriptionRequest > 0) { setSubscriptionFormError(''); setIsAddSubscriptionOpen(true); }
+  }, [addSubscriptionRequest]);
 
   // Sort active subscriptions to the top
   const sortedSubscriptions = [...subscriptions].sort((a, b) => {
@@ -181,13 +186,6 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
           </h1>
         </div>
 
-        <button
-          onClick={onOpenManualModal}
-          className="liquid-button flex items-center gap-2 px-4.5 py-2.5 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Novo cartão</span>
-        </button>
       </div>
 
       {/* Top Cards Grid */}
@@ -375,13 +373,6 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
             <span className="text-xs font-extrabold text-[#11310C]">
               Custo Fixo Ativo: {formatCurrency(totalSubscriptionsMonthly)}
             </span>
-            <button
-              type="button"
-              onClick={() => { setSubscriptionFormError(''); setIsAddSubscriptionOpen(true); }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#11310C] text-[#C4C240] text-[10px] font-extrabold cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adicionar assinatura
-            </button>
           </div>
         </div>
 

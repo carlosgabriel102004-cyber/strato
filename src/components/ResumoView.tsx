@@ -41,6 +41,7 @@ interface ResumoViewProps {
   onCreateAccount?: (name: string) => Promise<void>;
   onUpdateAccount?: (id: string, changes: { name?: string; archived?: boolean }) => Promise<void>;
   onDeleteAccount?: (id: string) => Promise<void>;
+  actionRequest?: { type: 'balances' | 'accounts'; n: number } | null;
 }
 
 // "cofrinho pj nu (100%)" -> { base: 'cofrinho pj nu', rate: '100' }
@@ -148,6 +149,7 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
   onCreateAccount,
   onUpdateAccount,
   onDeleteAccount,
+  actionRequest = null,
 }) => {
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [accountForm, setAccountForm] = useState<null | { id?: string; base: string; rate: string }>(null);
@@ -199,6 +201,26 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
           isProjected: isProj,
         };
       });
+
+  const realRowsForBalances = tableRows.filter((r: any) => !r.isProjected);
+  const lastRealRow: any = realRowsForBalances[realRowsForBalances.length - 1];
+  const openNextMonthBalances = () => {
+    const [lastName, lastYear] = (lastRealRow?.monthLabel || '').split(' ');
+    const idx = MONTHS_PT.findIndex((m) => m.toLowerCase() === (lastName || '').toLowerCase());
+    const nextKey = idx >= 0 ? Number(lastYear) * 12 + idx + 1 : new Date().getFullYear() * 12 + new Date().getMonth();
+    const nextLabel = `${MONTHS_PT[nextKey % 12]} ${Math.floor(nextKey / 12)}`;
+    const today = new Date();
+    const sameMonth = today.getFullYear() * 12 + today.getMonth() === nextKey;
+    const defaultDate = sameMonth ? today.toISOString().slice(0, 10) : `${Math.floor(nextKey / 12)}-${String((nextKey % 12) + 1).padStart(2, '0')}-05`;
+    const initial: Record<string, string> = { date: defaultDate };
+    activeAccounts.forEach((a) => { initial[a.id] = moneyText(lastRealRow?.balances?.[a.name]); });
+    setBalanceForm({ title: `Saldos de ${nextLabel}`, initial, accounts: activeAccounts });
+  };
+  React.useEffect(() => {
+    if (!actionRequest) return;
+    if (actionRequest.type === 'balances') openNextMonthBalances();
+    else { setAccountError(null); setAccountsOpen(true); }
+  }, [actionRequest?.n]);
 
   // Matching helper for goals and accounts
   const matchAccountName = (goalAccount?: string, colName?: string): boolean => {
@@ -672,40 +694,12 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
           </div>
         )}
 
-        {onSaveBalances && balanceAccounts.length > 0 && (() => {
-          const realRows = tableRows.filter((r: any) => !r.isProjected);
-          const last = realRows[realRows.length - 1];
-          const [lastName, lastYear] = (last?.monthLabel || '').split(' ');
-          const idx = MONTHS_PT.findIndex((m) => m.toLowerCase() === (lastName || '').toLowerCase());
-          const nextKey = idx >= 0 ? Number(lastYear) * 12 + idx + 1 : new Date().getFullYear() * 12 + new Date().getMonth();
-          const nextLabel = `${MONTHS_PT[nextKey % 12]} ${Math.floor(nextKey / 12)}`;
-          const today = new Date();
-          const sameMonth = today.getFullYear() * 12 + today.getMonth() === nextKey;
-          const defaultDate = sameMonth ? today.toISOString().slice(0, 10) : `${Math.floor(nextKey / 12)}-${String((nextKey % 12) + 1).padStart(2, '0')}-05`;
-          const initial: Record<string, string> = { date: defaultDate };
-          activeAccounts.forEach((a) => { initial[a.id] = moneyText(last?.balances?.[a.name]); });
-          return (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-[#11310C]/55">Último saldo lançado: <strong className="text-[#11310C]">{last ? `${last.monthLabel} (${last.date})` : '—'}</strong></p>
-              <div className="flex items-center gap-2">
-                {onUpdateAccount && (
-                  <button
-                    onClick={() => { setAccountError(null); setAccountsOpen(true); }}
-                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-[#11310C]/15 text-[#11310C] text-xs font-semibold hover:bg-[#11310C]/5 cursor-pointer"
-                  >
-                    <Wallet className="w-3.5 h-3.5" /> Contas e caixinhas
-                  </button>
-                )}
-                <button
-                  onClick={() => setBalanceForm({ title: `Saldos de ${nextLabel}`, initial, accounts: activeAccounts })}
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#11310C] text-[#FAFBF6] text-xs font-semibold cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Lançar saldos de {nextLabel.split(' ')[0].toLowerCase()}
-                </button>
-              </div>
-            </div>
-          );
-        })()}
+        {onSaveBalances && balanceAccounts.length > 0 && (
+          <p className="text-xs text-[#11310C]/55">
+            Último saldo lançado: <strong className="text-[#11310C]">{lastRealRow ? `${lastRealRow.monthLabel} (${lastRealRow.date})` : '—'}</strong>
+            <span className="text-[#11310C]/40"> · lance o próximo mês e gerencie as contas pelo botão “+ Novo Lançamento”</span>
+          </p>
+        )}
 
         <div className="overflow-x-auto rounded-2xl border border-[#11310C]/10 bg-white/80">
           <table className="w-full text-left text-xs border-collapse min-w-[900px]">

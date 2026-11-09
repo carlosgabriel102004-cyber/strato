@@ -104,6 +104,9 @@ export function App() {
   }, [activeTab]);
 
   const handleSelectTab = (tabId: string) => {
+    // pedidos de abrir formulário valem só para a página onde foram feitos
+    setSubscriptionRequest(0);
+    setResumoRequest(null);
     setActiveTab(tabId);
     if (tabId === 'extrato') {
       setSelectedMonth(getCurrentMonthLabel());
@@ -158,6 +161,8 @@ export function App() {
   const [exchanges, setExchanges] = useState<CurrencyExchange[]>([]);
   const [balanceAccounts, setBalanceAccounts] = useState<{ id: string; name: string; archived?: boolean }[]>([]);
   const [activeForm, setActiveForm] = useState<null | 'exchange' | 'stock' | 'debtor' | 'card'>(null);
+  const [subscriptionRequest, setSubscriptionRequest] = useState(0);
+  const [resumoRequest, setResumoRequest] = useState<{ type: 'balances' | 'accounts'; n: number } | null>(null);
   const [netUsdRate, setNetUsdRate] = useState<number>(5.401);
 
   // Auto-save effects for persistence across navigation/sessions
@@ -630,6 +635,13 @@ export function App() {
       : activeTab === 'cartoes'
       ? [
           { label: 'Novo cartão', onClick: () => setActiveForm('card') },
+          { label: 'Nova assinatura ou conta fixa', onClick: () => setSubscriptionRequest((n) => n + 1) },
+          { label: 'Lançamento no extrato', onClick: openManual },
+        ]
+      : activeTab === 'resumo'
+      ? [
+          { label: 'Lançar saldos do próximo mês', hint: 'Saldo de cada conta e caixinha', onClick: () => setResumoRequest((r) => ({ type: 'balances', n: (r?.n || 0) + 1 })) },
+          { label: 'Contas e caixinhas', hint: 'Criar, editar CDI, arquivar ou excluir', onClick: () => setResumoRequest((r) => ({ type: 'accounts', n: (r?.n || 0) + 1 })) },
           { label: 'Lançamento no extrato', onClick: openManual },
         ]
       : [{ label: 'Novo Lançamento', onClick: openManual }];
@@ -727,6 +739,7 @@ export function App() {
                 investments={investments}
                 goals={goals}
                 balanceAccounts={balanceAccounts}
+                actionRequest={resumoRequest}
                 onSaveBalances={async (date, values, previousDate) => {
                   await saveBalanceSnapshot(date, values, previousDate);
                   await fetchLiveSheets();
@@ -744,7 +757,6 @@ export function App() {
                 netUsdRate={netUsdRate}
                 exchanges={exchanges}
                 onOpenManualModal={() => setActiveForm('stock')}
-                onOpenExchange={() => setActiveForm('exchange')}
               />
             )}
 
@@ -760,6 +772,7 @@ export function App() {
                 subscriptionPayments={subscriptionPayments}
                 onUpdateSubscriptionPayment={handleUpdateSubscriptionPayment}
                 onAddRecurringCharge={handleAddRecurringCharge}
+                addSubscriptionRequest={subscriptionRequest}
               />
             )}
 

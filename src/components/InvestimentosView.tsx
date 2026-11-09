@@ -145,22 +145,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({
             <span>Dólar Comercial: R$ {usdExchangeRateCommercial.toFixed(2)}</span>
           </div>
 
-          <button
-            onClick={onOpenManualModal}
-            className="liquid-button flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Compra de ações</span>
-          </button>
-          {onOpenExchange && (
-            <button
-              onClick={onOpenExchange}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold text-[#11310C] border border-[#11310C]/15 hover:bg-[#11310C]/5 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Câmbio</span>
-            </button>
-          )}
         </div>
       </div>
 
