@@ -75,8 +75,8 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#11310C]/25 transition-all">
-      <div className="relative w-full max-w-lg bg-[#FCFCFA] rounded-2xl p-6 sm:p-7 border border-[#11310C]/10 shadow-[0_24px_60px_-20px_rgba(17,49,12,0.35)] animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 glass-overlay transition-all">
+      <div className="relative w-full max-w-lg glass-panel rounded-2xl p-6 sm:p-7 animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 mb-5 border-b border-[#11310C]/10">
           <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   placeholder="Ex: Mercado St. Marche, Pro-Labore..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-medium text-[#11310C]"
+                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-medium text-[#11310C]"
                 />
               </div>
 
@@ -196,7 +196,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   placeholder="0,00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-bold text-[#11310C]"
+                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-bold text-[#11310C]"
                 />
               </div>
             </div>
@@ -234,7 +234,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-semibold text-[#11310C]"
+                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-semibold text-[#11310C]"
                 />
               </div>
 
@@ -248,7 +248,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                   placeholder="Data de Vencimento"
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-semibold text-[#11310C]"
+                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-semibold text-[#11310C]"
                 />
               </div>
             </div>
@@ -265,7 +265,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   placeholder="PIX, Cartão Nubank..."
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-medium text-[#11310C]"
+                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-medium text-[#11310C]"
                 />
               </div>
 
@@ -280,7 +280,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   placeholder="Nubank PJ, Picpay PJ..."
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/90 border border-[#11310C]/20 focus:outline-none focus:ring-2 focus:ring-[#C4C240] text-xs font-medium text-[#11310C]"
+                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-medium text-[#11310C]"
                 />
                 <datalist id="strato-account-options">
                   {accountOptions.map((option) => <option key={option} value={option} />)}

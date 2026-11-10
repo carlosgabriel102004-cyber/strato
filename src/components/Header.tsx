@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
     matchedDebtors.length > 0;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#F8F9F3]/95 border-b border-[#11310C]/8 px-4 lg:px-8 py-3 transition-all">
+    <header className="sticky top-0 z-50 bg-[#F8F9F3]/70 backdrop-blur-xl backdrop-saturate-150 border-b border-[#11310C]/8 px-4 lg:px-8 py-3 transition-all">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 relative">
         <div className="hidden md:block text-[11px] font-medium uppercase tracking-[0.14em] text-[#11310C]/50">Strato</div>
 
@@ -129,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
               value={searchQuery}
               onFocus={() => setIsSearchFocused(true)}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 rounded-2xl text-xs font-medium bg-white/90 border border-[#11310C]/15 focus:outline-none focus:ring-2 focus:ring-[#C4C240] focus:border-transparent transition-all placeholder-[#11310C]/40 text-[#11310C]"
+              className="w-full h-9 pl-9 pr-8 rounded-xl text-xs font-medium glass-control focus:outline-none placeholder-[#11310C]/40 text-[#11310C]"
             />
             {searchQuery && (
               <button
@@ -142,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Interactive Search Results Popup */}
             {isSearchFocused && query && (
-              <div className="absolute top-12 left-0 w-full sm:w-80 bg-white rounded-2xl border border-[#11310C]/15 shadow-2xl p-3 z-50 space-y-2 max-h-80 overflow-y-auto">
+              <div className="absolute top-12 left-0 w-full sm:w-80 glass-panel rounded-2xl p-3 z-50 space-y-2 max-h-80 overflow-y-auto">
                 {!hasResults ? (
                   <p className="text-xs text-[#11310C]/60 text-center py-4">
                     Nenhum resultado para "{searchQuery}"
@@ -227,15 +227,15 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => setIsMonthOpen(!isMonthOpen)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/90 hover:bg-white border border-[#11310C]/15 text-[#11310C] text-xs font-extrabold cursor-pointer transition-all shadow-xs"
+              className="flex items-center gap-2 h-9 px-3.5 rounded-xl glass-control text-[#11310C] text-xs font-semibold cursor-pointer"
             >
-              <Calendar className="w-3.5 h-3.5 text-[#C4C240]" />
+              <Calendar className="w-3.5 h-3.5 text-[#11310C]/60" />
               <span>{selectedMonth}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-[#11310C]/60 transition-transform duration-200 ${isMonthOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isMonthOpen && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl border border-[#11310C]/15 shadow-2xl p-1.5 z-50 space-y-0.5 animate-in fade-in zoom-in-95">
+              <div className="absolute top-full right-0 mt-2 w-48 glass-panel rounded-2xl p-1.5 z-50 space-y-0.5 animate-in fade-in zoom-in-95">
                 {monthsList.map((m) => {
                   const isSelected = m === selectedMonth;
                   const isCurrent = m === getCurrentMonthLabel();
@@ -274,17 +274,17 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={handleHeaderSync}
             disabled={isSyncing}
-            className="p-2.5 rounded-2xl bg-[#11310C] hover:bg-[#1A4713] text-[#FAFBF6] cursor-pointer transition-all shadow-xs disabled:opacity-50 flex items-center justify-center"
+            className="h-9 w-9 rounded-xl glass-control text-[#11310C] cursor-pointer disabled:opacity-50 flex items-center justify-center"
             title="Atualizar dados da planilha"
           >
-            <RefreshCw className={`w-4 h-4 text-[#C4C240] ${isSyncing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-[#11310C]/70 ${isSyncing ? 'animate-spin' : ''}`} />
           </button>
 
           {/* Novo lançamento: as opções mudam conforme a página */}
           <div className="relative">
             <button
               onClick={() => (addOptions && addOptions.length > 1 ? setIsAddMenuOpen((v) => !v) : (addOptions?.[0]?.onClick ?? onOpenManualModal)())}
-              className="liquid-button flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-[#11310C] cursor-pointer"
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-[#11310C] hover:bg-[#11310C]/90 text-xs font-semibold text-[#FAFBF6] cursor-pointer transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden lg:inline">{addOptions && addOptions.length === 1 ? addOptions[0].label : 'Novo Lançamento'}</span>
@@ -293,7 +293,7 @@ export const Header: React.FC<HeaderProps> = ({
             {isAddMenuOpen && addOptions && addOptions.length > 1 && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsAddMenuOpen(false)} />
-                <div className="absolute right-0 mt-2 w-60 z-50 rounded-xl bg-[#FCFCFA] border border-[#11310C]/10 shadow-[0_16px_40px_-16px_rgba(17,49,12,0.35)] p-1">
+                <div className="absolute right-0 mt-2 w-60 z-50 rounded-xl glass-panel p-1">
                   {addOptions.map((opt) => (
                     <button
                       key={opt.label}

@@ -879,8 +879,8 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
       </div>
 
       {accountsOpen && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-[#11310C]/25" onClick={() => setAccountsOpen(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#FCFCFA] rounded-2xl border border-[#11310C]/10 shadow-[0_24px_60px_-20px_rgba(17,49,12,0.35)]">
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 glass-overlay" onClick={() => setAccountsOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg glass-panel rounded-2xl">
             <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[#11310C]/8">
               <div>
                 <h3 className="font-serif text-xl font-semibold text-[#11310C]">Contas e caixinhas</h3>

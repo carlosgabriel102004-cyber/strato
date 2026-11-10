@@ -204,7 +204,8 @@ export interface NewRecurringCharge {
   serviceName: string;
   monthlyPrice: number;
   paymentMethod: string;
-  renewalDay: number;
+  renewalDay: number | null;
+  personalMonthlyPrice?: number | null;
 }
 
 export interface CurrencyExchange {

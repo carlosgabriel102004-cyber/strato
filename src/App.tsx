@@ -27,7 +27,7 @@ import {
 } from './data/mockData';
 import { CurrencyExchange, Transaction, SpreadsheetConnection, FinancialGoal, Debtor, TaxSettings, MonthSummaryData, AuthErrorInfo, UserProfile, Subscription, SubscriptionMonthPayment, NewRecurringCharge } from './types';
 import { initAuth, googleSignIn, logout, parseAuthError } from './lib/auth';
-import { loadFinanceData, insertTransaction, insertSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid, insertExchange, addStockPurchase, insertDebtorEntry, insertCard, saveBalanceSnapshot, createBalanceAccount, updateBalanceAccount, deleteBalanceAccount } from './lib/financeRepository';
+import { loadFinanceData, insertTransaction, insertSubscription, updateSubscription, deleteSubscription, setSubscriptionActive, setCardLimit, setCardInvoicePaid, insertExchange, addStockPurchase, insertDebtorEntry, insertCard, saveBalanceSnapshot, createBalanceAccount, updateBalanceAccount, deleteBalanceAccount } from './lib/financeRepository';
 import { QuickForm, parseMoney } from './components/QuickForm';
 import { LoginScreen } from './components/LoginScreen';
 import { PaymentRemindersModal } from './components/PaymentRemindersModal';
@@ -780,6 +780,8 @@ export function App() {
                 onUpdateSubscriptionPayment={handleUpdateSubscriptionPayment}
                 onAddRecurringCharge={handleAddRecurringCharge}
                 addSubscriptionRequest={subscriptionRequest}
+                onUpdateSubscription={async (id, charge) => { await updateSubscription(id, charge); await fetchLiveSheets(); }}
+                onDeleteSubscription={async (id) => { await deleteSubscription(id); await fetchLiveSheets(); }}
               />
             )}
 

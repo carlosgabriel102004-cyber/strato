@@ -42,7 +42,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({ value, options, onChange
       </button>
 
       {open && (
-        <div className={`absolute z-40 mt-1 w-56 rounded-xl bg-[#FCFCFA] border border-[#11310C]/10 shadow-[0_16px_40px_-16px_rgba(17,49,12,0.35)] p-1 ${align === 'right' ? 'right-0' : 'left-0'}`}>
+        <div className={`absolute z-40 mt-1 w-56 rounded-xl glass-panel p-1 ${align === 'right' ? 'right-0' : 'left-0'}`}>
           {options.map((o) => (
             <button
               key={o.id}

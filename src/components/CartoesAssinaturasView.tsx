@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { QuickForm, parseMoney } from './QuickForm';
+import { Pencil, Trash2 } from 'lucide-react';
 import {
   CreditCard,
   Calendar,
@@ -85,6 +87,8 @@ interface CartoesAssinaturasViewProps {
   onUpdateSubscriptionPayment?: (subscriptionId: string, month: string, update: Partial<SubscriptionMonthPayment>) => void;
   onAddRecurringCharge: (charge: NewRecurringCharge) => Promise<void>;
   addSubscriptionRequest?: number;
+  onUpdateSubscription?: (id: string, charge: NewRecurringCharge) => Promise<void>;
+  onDeleteSubscription?: (id: string) => Promise<void>;
 }
 
 export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
@@ -99,20 +103,19 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
   onUpdateSubscriptionPayment,
   onAddRecurringCharge,
   addSubscriptionRequest = 0,
+  onUpdateSubscription,
+  onDeleteSubscription,
 }) => {
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [tempLimit, setTempLimit] = useState<string>('');
   const [paidDateDrafts, setPaidDateDrafts] = useState<Record<string, string>>({});
   const [contributionDateDrafts, setContributionDateDrafts] = useState<Record<string, string>>({});
   const [isAddSubscriptionOpen, setIsAddSubscriptionOpen] = useState(false);
-  const [newSubscriptionName, setNewSubscriptionName] = useState('');
-  const [newSubscriptionAmount, setNewSubscriptionAmount] = useState('');
-  const [newSubscriptionMethod, setNewSubscriptionMethod] = useState('Pix');
-  const [newSubscriptionDay, setNewSubscriptionDay] = useState('');
-  const [isSavingSubscription, setIsSavingSubscription] = useState(false);
-  const [subscriptionFormError, setSubscriptionFormError] = useState('');
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
+  const paymentOptions = [{ value: 'PIX', label: 'PIX' }, ...creditCards.map((c) => ({ value: c.name, label: c.name }))];
+  const moneyInput = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   React.useEffect(() => {
-    if (addSubscriptionRequest > 0) { setSubscriptionFormError(''); setIsAddSubscriptionOpen(true); }
+    if (addSubscriptionRequest > 0) { setEditingSubscription(null); setIsAddSubscriptionOpen(true); }
   }, [addSubscriptionRequest]);
 
   // Sort active subscriptions to the top
@@ -143,38 +146,6 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
     setEditingCardId(null);
   };
 
-  const handleAddSubscription = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const normalizedAmount = newSubscriptionAmount.includes(',') && newSubscriptionAmount.includes('.')
-      ? newSubscriptionAmount.replace(/\./g, '').replace(',', '.')
-      : newSubscriptionAmount.replace(',', '.');
-    const monthlyPrice = Number(normalizedAmount);
-    const renewalDay = Number(newSubscriptionDay);
-    if (!newSubscriptionName.trim() || !Number.isFinite(monthlyPrice) || monthlyPrice <= 0 || !Number.isInteger(renewalDay) || renewalDay < 1 || renewalDay > 31) {
-      setSubscriptionFormError('Preencha nome, valor mensal e dia de cobrança (1 a 31).');
-      return;
-    }
-
-    setIsSavingSubscription(true);
-    setSubscriptionFormError('');
-    try {
-      await onAddRecurringCharge({
-        serviceName: newSubscriptionName.trim(),
-        monthlyPrice,
-        paymentMethod: newSubscriptionMethod.trim() || 'Pix',
-        renewalDay,
-      });
-      setNewSubscriptionName('');
-      setNewSubscriptionAmount('');
-      setNewSubscriptionMethod('Pix');
-      setNewSubscriptionDay('');
-      setIsAddSubscriptionOpen(false);
-    } catch (error: any) {
-      setSubscriptionFormError(error?.message || 'Não foi possível gravar na planilha.');
-    } finally {
-      setIsSavingSubscription(false);
-    }
-  };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-6 lg:px-12 space-y-10 pb-16">
@@ -403,12 +374,31 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                     <div>
                       <h4 className="font-extrabold text-sm text-[#11310C]">{sub.serviceName}</h4>
                       <span className="text-[11px] font-semibold text-[#11310C]/60 block">
-                        Cobrado no: <strong className="text-[#11310C]">{sub.paymentCard || 'Cartão Nubank'}</strong>
+                        Cobrado no: <strong className="text-[#11310C]">{sub.paymentCard || 'PIX'}</strong>
                       </span>
                     </div>
                   </div>
 
                   <div className="text-right">
+                    <div className="flex items-center justify-end gap-0.5 -mt-1 -mr-1 mb-0.5">
+                      {onUpdateSubscription && (
+                        <button title="Editar assinatura" onClick={() => { setEditingSubscription(sub); setIsAddSubscriptionOpen(true); }} className="p-1.5 rounded-lg text-[#11310C]/45 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {onDeleteSubscription && (
+                        <button
+                          title="Excluir assinatura"
+                          onClick={() => {
+                            if (!window.confirm(`Excluir a assinatura "${sub.serviceName}"? Os lançamentos já feitos no extrato não são apagados.`)) return;
+                            onDeleteSubscription(sub.id).catch((e) => window.alert(e.message));
+                          }}
+                          className="p-1.5 rounded-lg text-[#11310C]/45 hover:text-[#E13513] hover:bg-[#E13513]/5 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     <span className="font-extrabold text-base text-[#11310C] block">
                       {formatCurrency(personalMonthlyPrice)}
                     </span>
@@ -547,44 +537,38 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
           })}
         </div>
       </div>
-      {isAddSubscriptionOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <form onSubmit={handleAddSubscription} className="w-full max-w-lg rounded-3xl bg-[#FAFBF6] p-6 sm:p-8 shadow-2xl space-y-5">
-            <div>
-              <h3 className="text-xl font-extrabold text-[#11310C]">Adicionar assinatura ou conta fixa</h3>
-              <p className="mt-1 text-xs text-[#11310C]/65">Ao salvar, o app acrescenta a cobrança na planilha e ela passa a entrar nas previsões mensais.</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="text-[11px] font-bold text-[#11310C]/70">
-                Nome da conta
-                <input required value={newSubscriptionName} onChange={(e) => setNewSubscriptionName(e.target.value)} placeholder="Ex.: Conta TIM" className="mt-1 w-full rounded-xl border border-[#11310C]/20 bg-white px-3 py-2.5 text-sm text-[#11310C]" />
-              </label>
-              <label className="text-[11px] font-bold text-[#11310C]/70">
-                Valor mensal (R$)
-                <input required type="text" inputMode="decimal" value={newSubscriptionAmount} onChange={(e) => setNewSubscriptionAmount(e.target.value)} placeholder="0,00" className="mt-1 w-full rounded-xl border border-[#11310C]/20 bg-white px-3 py-2.5 text-sm text-[#11310C]" />
-              </label>
-              <label className="text-[11px] font-bold text-[#11310C]/70">
-                Forma de pagamento
-                <input required value={newSubscriptionMethod} onChange={(e) => setNewSubscriptionMethod(e.target.value)} placeholder="Pix, cartão..." className="mt-1 w-full rounded-xl border border-[#11310C]/20 bg-white px-3 py-2.5 text-sm text-[#11310C]" />
-              </label>
-              <label className="text-[11px] font-bold text-[#11310C]/70">
-                Dia de cobrança
-                <input required type="number" min="1" max="31" step="1" value={newSubscriptionDay} onChange={(e) => setNewSubscriptionDay(e.target.value)} placeholder="1–31" className="mt-1 w-full rounded-xl border border-[#11310C]/20 bg-white px-3 py-2.5 text-sm text-[#11310C]" />
-              </label>
-            </div>
-
-            {subscriptionFormError && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">{subscriptionFormError}</p>}
-
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setIsAddSubscriptionOpen(false)} disabled={isSavingSubscription} className="px-4 py-2.5 rounded-xl border border-[#11310C]/20 text-xs font-extrabold text-[#11310C] cursor-pointer disabled:opacity-50">Cancelar</button>
-              <button type="submit" disabled={isSavingSubscription} className="px-4 py-2.5 rounded-xl bg-[#11310C] text-[#C4C240] text-xs font-extrabold cursor-pointer disabled:opacity-50">
-                {isSavingSubscription ? 'Salvando…' : 'Salvar na planilha'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <QuickForm
+        open={isAddSubscriptionOpen}
+        title={editingSubscription ? 'Editar assinatura' : 'Nova assinatura ou conta fixa'}
+        subtitle="Entra nos lembretes e nas previsões do mês."
+        initial={editingSubscription
+          ? {
+              name: editingSubscription.serviceName,
+              amount: moneyInput(editingSubscription.monthlyPrice),
+              personal: editingSubscription.personalMonthlyPrice !== undefined ? moneyInput(editingSubscription.personalMonthlyPrice) : '',
+              method: paymentOptions.some((o) => o.value === editingSubscription.paymentCard) ? editingSubscription.paymentCard : 'PIX',
+              day: editingSubscription.renewalDay ? String(editingSubscription.renewalDay) : '',
+            }
+          : { method: 'PIX' }}
+        fields={[
+          { name: 'name', label: 'Nome', required: true, placeholder: 'Ex.: Netflix' },
+          { name: 'amount', label: 'Valor mensal (R$)', type: 'money', required: true, half: true, placeholder: '0,00' },
+          { name: 'personal', label: 'Sua parte (R$)', type: 'money', half: true, placeholder: 'se for dividida' },
+          { name: 'method', label: 'Forma de pagamento', type: 'select', half: true, options: paymentOptions },
+          { name: 'day', label: 'Dia de cobrança', type: 'number', half: true, placeholder: '1–31' },
+        ]}
+        onClose={() => { setIsAddSubscriptionOpen(false); setEditingSubscription(null); }}
+        onSubmit={async (v) => {
+          const day = v.day ? Math.round(parseMoney(v.day)) : null;
+          if (day !== null && !(day >= 1 && day <= 31)) throw new Error('O dia de cobrança deve ser entre 1 e 31.');
+          const monthlyPrice = parseMoney(v.amount);
+          const personal = v.personal ? parseMoney(v.personal) : null;
+          if (personal !== null && personal > monthlyPrice) throw new Error('A sua parte não pode ser maior que o valor mensal.');
+          const charge = { serviceName: v.name.trim(), monthlyPrice, paymentMethod: v.method || 'PIX', renewalDay: day, personalMonthlyPrice: personal };
+          if (editingSubscription && onUpdateSubscription) await onUpdateSubscription(editingSubscription.id, charge);
+          else await onAddRecurringCharge(charge);
+        }}
+      />
     </div>
   );
 };

@@ -165,16 +165,35 @@ export async function insertTransaction(tx: Omit<Transaction, 'id'>) {
   if (error) throw new Error(`Não foi possível salvar o lançamento: ${error.message}`);
 }
 
-export async function insertSubscription(sub: { serviceName: string; monthlyPrice: number; paymentMethod: string; renewalDay: number }) {
-  const { error } = await supabase.from('subscriptions').insert({
-    service_name: sub.serviceName,
-    monthly_price: sub.monthlyPrice,
-    payment_method: sub.paymentMethod,
-    renewal_day: sub.renewalDay,
-    active: true,
-    sort_order: Math.floor(Date.now() / 1000),
-  });
+export interface SubscriptionInput {
+  serviceName: string;
+  monthlyPrice: number;
+  paymentMethod: string;
+  renewalDay: number | null;
+  personalMonthlyPrice?: number | null;
+}
+
+const subscriptionRow = (sub: SubscriptionInput) => ({
+  service_name: sub.serviceName,
+  monthly_price: sub.monthlyPrice,
+  payment_method: sub.paymentMethod,
+  renewal_day: sub.renewalDay,
+  personal_monthly_price: sub.personalMonthlyPrice ?? null,
+});
+
+export async function insertSubscription(sub: SubscriptionInput) {
+  const { error } = await supabase.from('subscriptions').insert({ ...subscriptionRow(sub), active: true, sort_order: Math.floor(Date.now() / 1000) });
   if (error) throw new Error(`Não foi possível salvar a cobrança: ${error.message}`);
+}
+
+export async function updateSubscription(id: string, sub: SubscriptionInput) {
+  const { error } = await supabase.from('subscriptions').update(subscriptionRow(sub)).eq('id', id);
+  if (error) throw new Error(`Não foi possível atualizar a assinatura: ${error.message}`);
+}
+
+export async function deleteSubscription(id: string) {
+  const { error } = await supabase.from('subscriptions').delete().eq('id', id);
+  if (error) throw new Error(`Não foi possível excluir a assinatura: ${error.message}`);
 }
 
 export async function setSubscriptionActive(id: string, active: boolean) {

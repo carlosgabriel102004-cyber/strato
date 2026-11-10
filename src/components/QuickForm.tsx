@@ -69,14 +69,14 @@ export const QuickForm: React.FC<QuickFormProps> = ({ open, title, subtitle, fie
     }
   };
 
-  const input = 'w-full h-10 px-3 rounded-lg bg-white border border-[#11310C]/15 text-[13px] text-[#11310C] placeholder-[#11310C]/35 focus:outline-none focus:border-[#11310C]/50 transition-colors';
+  const input = 'w-full h-10 px-3 rounded-lg glass-field text-[13px] text-[#11310C] placeholder-[#11310C]/35 transition-colors';
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#11310C]/25" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 glass-overlay" onClick={onClose}>
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-[#FCFCFA] rounded-2xl border border-[#11310C]/10 shadow-[0_24px_60px_-20px_rgba(17,49,12,0.35)]"
+        className="w-full max-w-md glass-panel rounded-2xl"
       >
         <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[#11310C]/8">
           <div>
