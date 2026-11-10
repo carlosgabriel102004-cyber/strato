@@ -211,7 +211,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   value={category}
                   onChange={setCategory}
                   className="w-full"
-                  buttonClassName="w-full py-2.5 bg-white/90"
+                  buttonClassName="w-full"
                   options={[
                     'Alimentação',
                     'Moradia',
@@ -259,13 +259,14 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                 <label className="block text-[11px] font-bold text-[#11310C]/70 uppercase mb-1">
                   Forma de Pagamento
                 </label>
-                <input
-                  type="text"
-                  list="strato-payment-options"
-                  placeholder="PIX, Cartão Nubank..."
+                <CustomSelect
+                  creatable
+                  className="w-full"
+                  buttonClassName="w-full"
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-medium text-[#11310C]"
+                  onChange={setPaymentMethod}
+                  placeholder="PIX, cartão…"
+                  options={paymentOptions}
                 />
               </div>
 
@@ -274,20 +275,15 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   <FileSpreadsheet className="w-3.5 h-3.5 text-[#C4C240]" />
                   Conta
                 </label>
-                <input
-                  type="text"
-                  list="strato-account-options"
-                  placeholder="Nubank PJ, Picpay PJ..."
+                <CustomSelect
+                  creatable
+                  className="w-full"
+                  buttonClassName="w-full"
                   value={account}
-                  onChange={(e) => setAccount(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl glass-field text-xs font-medium text-[#11310C]"
+                  onChange={setAccount}
+                  placeholder="Nubank PJ, Picpay PJ…"
+                  options={accountOptions}
                 />
-                <datalist id="strato-account-options">
-                  {accountOptions.map((option) => <option key={option} value={option} />)}
-                </datalist>
-                <datalist id="strato-payment-options">
-                  {paymentOptions.map((option) => <option key={option} value={option} />)}
-                </datalist>
               </div>
             </div>
 

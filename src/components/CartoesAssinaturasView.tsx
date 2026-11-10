@@ -204,10 +204,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
               Ciclos de <span className="font-serif italic font-bold text-xl text-[#C4C240]">Abertura & Fechamento</span> dos Cartões
             </h3>
           </div>
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-[#11310C]/10 text-[#11310C]">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-            Dados Protegidos
-          </span>
+          <span className="text-xs text-[#11310C]/55">{creditCards.length} cartões</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -217,17 +214,13 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
             return (
               <div
                 key={card.id}
-                className={`p-5 rounded-3xl bg-white/90 border space-y-3 shadow-xs transition-all ${
-                  isPaid ? 'border-[#11310C]/25 bg-[#11310C]/5' : 'border-[#11310C]/15 hover:border-[#C4C240]'
-                }`}
+                className={`p-5 rounded-2xl border border-[#11310C]/10 bg-white/55 space-y-3 transition-colors ${isPaid ? 'opacity-70' : ''}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-[#11310C] text-[#C4C240] flex items-center justify-center">
-                      <CreditCard className="w-4 h-4" />
-                    </div>
+                    <CreditCard className="w-4 h-4 text-[#11310C]/50" />
                     <div>
-                      <h4 className="font-extrabold text-xs text-[#11310C]">{card.name}</h4>
+                      <h4 className="font-semibold text-[13px] text-[#11310C]">{card.name}</h4>
                       <span className="text-[10px] font-semibold text-[#11310C]/60">
                         {card.bank} • Final {card.lastDigits || '****'}
                       </span>
@@ -236,26 +229,26 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
 
                   <div className="flex items-center gap-1">
                     {isPaid ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-[#11310C] text-[#C4C240] border border-[#C4C240]/30 shadow-xs">
-                        <CheckCircle2 className="w-3 h-3 text-[#C4C240]" />
-                        Fatura Paga
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#11310C]/60">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Paga
                       </span>
                     ) : (
-                      <span className="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-[#E13513]/15 text-[#E13513] border border-[#E13513]/30">
-                        {card.status === 'fechada' ? 'Fatura Fechada' : 'Fatura Aberta'}
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#E13513]">
+                        {card.autoPay ? 'Débito automático' : card.status === 'fechada' ? 'Fechada' : 'Aberta'}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-[#11310C]/5 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#11310C]">
-                    <span>Fatura Atual:</span>
-                    <span className={`text-sm font-extrabold ${isPaid ? 'text-[#11310C]/70 line-through' : 'text-[#11310C]'}`}>
+                <div className="space-y-2">
+                  <div className="flex items-end justify-between text-xs text-[#11310C]/60">
+                    <span>Fatura atual</span>
+                    <span className={`font-serif text-2xl font-semibold tracking-tight ${isPaid ? 'text-[#11310C]/60 line-through' : 'text-[#11310C]'}`}>
                       {formatCurrency(card.currentInvoice)}
                     </span>
                   </div>
-                  <div className="w-full bg-white h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-[#11310C]/8 h-1 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${isPaid ? 'bg-[#11310C]/40' : 'bg-[#11310C]'}`}
                       style={{ width: `${Math.min(100, isPaid ? 0 : (card.currentInvoice / card.limit) * 100)}%` }}
@@ -263,8 +256,8 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                   </div>
 
                   {/* Limit Section with Editable Limit */}
-                  <div className="flex items-center justify-between text-[10px] text-[#11310C]/70 font-semibold pt-1">
-                    <span>Limite Total:</span>
+                  <div className="flex items-center justify-between text-[11px] text-[#11310C]/60">
+                    <span>Limite</span>
                     {editingCardId === card.id ? (
                       <div className="flex items-center gap-1">
                         <input
@@ -297,30 +290,23 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                 </div>
 
                 {/* Dates & Mark Paid Action */}
-                <div className="grid grid-cols-2 gap-2 text-center text-xs font-bold pt-1">
-                  <div className="p-2 rounded-xl bg-white border border-[#11310C]/10">
-                    <span className="text-[10px] text-[#11310C]/60 uppercase block">Fechamento</span>
-                    <span className="text-[#11310C]">Dia {card.closingDay} do mês</span>
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-white border border-[#11310C]/10">
-                    <span className="text-[10px] text-[#11310C]/60 uppercase block">Vencimento</span>
-                    <span className="text-[#11310C]">Dia {card.dueDay} do mês</span>
-                  </div>
+                <div className="flex items-center justify-between text-[11px] text-[#11310C]/60 pt-2 border-t border-[#11310C]/8">
+                  <span>Fecha dia <strong className="font-semibold text-[#11310C]">{card.closingDay}</strong></span>
+                  <span>Vence dia <strong className="font-semibold text-[#11310C]">{card.dueDay}</strong></span>
                 </div>
 
                 {/* Mark as Paid Toggle Button */}
                 {onToggleCardPaid && (
                   <button
                     onClick={() => onToggleCardPaid(card.id)}
-                    className={`w-full py-2 px-3 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                    className={`w-full h-9 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                       isPaid
-                        ? 'bg-[#11310C]/10 text-[#11310C] border border-[#11310C]/20 hover:bg-[#11310C]/20'
-                        : 'bg-[#11310C] text-[#C4C240] hover:bg-[#11310C]/90 shadow-xs'
+                        ? 'text-[#11310C]/60 hover:bg-[#11310C]/5'
+                        : 'border border-[#11310C]/15 text-[#11310C] hover:bg-[#11310C]/5'
                     }`}
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>{isPaid ? 'Fatura Paga (Clique para reabrir)' : 'Marcar Fatura como Paga'}</span>
+                    <span>{isPaid ? 'Reabrir fatura' : 'Marcar como paga'}</span>
                   </button>
                 )}
               </div>
@@ -334,11 +320,9 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#11310C]/10">
           <div>
             <h3 className="text-lg font-extrabold text-[#11310C]">
-              Planilha de <span className="font-serif italic font-bold text-xl text-[#C4C240]">Assinaturas</span> & Cobranças Automáticas
+              <span className="font-serif italic font-bold text-xl text-[#C4C240]">Assinaturas</span> & contas fixas
             </h3>
-            <p className="text-xs text-[#11310C]/60">
-              Assinaturas com status <span className="font-bold text-emerald-800">Ativa</span> ficam priorizadas no topo e são cobradas no extrato. Assinaturas <span className="font-bold text-amber-800">Pausadas</span> ficam suspensas.
-            </p>
+<p className="text-xs text-[#11310C]/60">Ativas primeiro. As pausadas não entram nas previsões.</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-extrabold text-[#11310C]">
@@ -358,29 +342,28 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
             return (
               <div
                 key={sub.id}
-                className={`p-5 rounded-3xl bg-white/90 border space-y-3 transition-all ${
-                  isActive
-                    ? 'border-[#11310C]/15 shadow-xs hover:border-[#C4C240]'
-                    : 'border-amber-300/60 bg-amber-50/30 opacity-75'
-                }`}
+                className={`p-5 rounded-2xl border border-[#11310C]/10 bg-white/55 space-y-3 transition-colors ${isActive ? '' : 'opacity-60'}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${
-                      isActive ? 'bg-[#11310C] text-[#C4C240]' : 'bg-amber-200 text-amber-900'
-                    }`}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#11310C]/6 text-[#11310C]/70">
                       {getServiceIcon(sub.serviceName, sub.category)}
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-sm text-[#11310C]">{sub.serviceName}</h4>
-                      <span className="text-[11px] font-semibold text-[#11310C]/60 block">
-                        Cobrado no: <strong className="text-[#11310C]">{sub.paymentCard || 'PIX'}</strong>
+                      <h4 className="font-semibold text-sm text-[#11310C]">{sub.serviceName}</h4>
+                      <span className="text-[11px] text-[#11310C]/60 block">
+                        {sub.paymentCard || 'PIX'}{sub.renewalDay ? ` · dia ${sub.renewalDay}` : ''} · <span className={isActive ? '' : 'font-semibold text-[#11310C]'}>{isActive ? 'ativa' : 'pausada'}</span>
                       </span>
                     </div>
                   </div>
 
                   <div className="text-right">
                     <div className="flex items-center justify-end gap-0.5 -mt-1 -mr-1 mb-0.5">
+                      {onToggleSubscriptionStatus && (
+                        <button onClick={() => onToggleSubscriptionStatus(sub.id)} className="h-7 px-2 rounded-lg text-[11px] font-medium text-[#11310C]/60 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer">
+                          {isActive ? 'Pausar' : 'Ativar'}
+                        </button>
+                      )}
                       {onUpdateSubscription && (
                         <button title="Editar assinatura" onClick={() => { setEditingSubscription(sub); setIsAddSubscriptionOpen(true); }} className="p-1.5 rounded-lg text-[#11310C]/45 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer">
                           <Pencil className="w-3.5 h-3.5" />
@@ -399,7 +382,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                         </button>
                       )}
                     </div>
-                    <span className="font-extrabold text-base text-[#11310C] block">
+                    <span className="font-serif font-semibold text-xl tracking-tight text-[#11310C] block">
                       {formatCurrency(personalMonthlyPrice)}
                     </span>
                     <span className="text-[10px] text-[#11310C]/60 font-semibold">
@@ -408,39 +391,10 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs font-bold pt-1 border-t border-[#11310C]/10">
-                  <div className="p-2.5 rounded-2xl bg-white border border-[#11310C]/10">
-                    <span className="text-[10px] text-[#11310C]/60 uppercase block">Data Cobrança</span>
-                    <span className="text-[#11310C]">Dia {sub.renewalDay} do mês</span>
-                  </div>
-
-                  <div className="p-2.5 rounded-2xl bg-white border border-[#11310C]/10 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-[#11310C]/60 uppercase block">Status</span>
-                      <span className={isActive ? 'text-emerald-800 font-extrabold' : 'text-amber-800 font-extrabold'}>
-                        {isActive ? 'Ativa' : 'Pausada'}
-                      </span>
-                    </div>
-
-                    {onToggleSubscriptionStatus && (
-                      <button
-                        onClick={() => onToggleSubscriptionStatus(sub.id)}
-                        className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold cursor-pointer transition-all ${
-                          isActive
-                            ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-                            : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
-                        }`}
-                      >
-                        {isActive ? 'Pausar' : 'Ativar'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2 border-t border-[#11310C]/10 pt-3">
+                <div className="space-y-2 border-t border-[#11310C]/8 pt-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-[#11310C]">Pagamento de {selectedMonth}</span>
-                    <span className={`text-[10px] font-extrabold uppercase ${paymentRecord.paidDate ? 'text-emerald-800' : 'text-amber-800'}`}>
+                    <span className="text-xs text-[#11310C]/60">Pagamento de {selectedMonth}</span>
+                    <span className={`text-[11px] font-medium ${paymentRecord.paidDate ? 'text-emerald-800' : 'text-[#11310C]/60'}`}>
                       {paymentRecord.paidDate ? `Pago em ${paymentRecord.paidDate.split('-').reverse().join('/')}` : 'Ainda não pago'}
                     </span>
                   </div>
@@ -450,7 +404,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                       aria-label={`Data do pagamento de ${sub.serviceName}`}
                       value={paidDateDrafts[paymentRecordKey] ?? paymentRecord.paidDate ?? ''}
                       onChange={(e) => setPaidDateDrafts((prev) => ({ ...prev, [paymentRecordKey]: e.target.value }))}
-                      className="min-w-0 flex-1 px-2.5 py-2 rounded-xl bg-white border border-[#11310C]/15 text-xs text-[#11310C]"
+                      className="min-w-0 flex-1 h-9 px-2.5 rounded-lg glass-field text-xs text-[#11310C]"
                     />
                     <button
                       type="button"
@@ -465,7 +419,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                           });
                         }
                       }}
-                      className={`shrink-0 px-3 py-2 rounded-xl text-[10px] font-extrabold cursor-pointer disabled:opacity-50 ${paymentRecord.paidDate ? 'bg-amber-100 text-amber-900' : 'bg-[#11310C] text-[#C4C240]'}`}
+                      className={`shrink-0 h-9 px-3 rounded-lg text-[11px] font-semibold cursor-pointer disabled:opacity-50 ${paymentRecord.paidDate ? 'text-[#11310C]/60 hover:bg-[#11310C]/5' : 'border border-[#11310C]/15 text-[#11310C] hover:bg-[#11310C]/5'}`}
                     >
                       {paymentRecord.paidDate ? 'Desmarcar' : 'Marcar pago'}
                     </button>
@@ -473,7 +427,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onUpdateSubscriptionPayment?.(sub.serviceName, selectedMonth, { paidDate: paidDateDrafts[paymentRecordKey] })}
-                        className="shrink-0 px-3 py-2 rounded-xl bg-white border border-[#11310C]/15 text-[10px] font-extrabold text-[#11310C] cursor-pointer"
+                        className="shrink-0 h-9 px-3 rounded-lg border border-[#11310C]/15 text-[11px] font-semibold text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"
                       >
                         Salvar data
                       </button>
@@ -481,12 +435,12 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                   </div>
 
                   {sharedMonthlyAmount > 0 && (
-                    <div className="rounded-2xl bg-[#11310C]/5 p-3 space-y-2">
+                    <div className="pt-2 space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-bold text-[#11310C]">
+                        <span className="text-xs text-[#11310C]/60">
                           Ajuda das outras pessoas ({formatCurrency(sharedMonthlyAmount)})
                         </span>
-                        <span className={`text-[10px] font-extrabold ${paymentRecord.contributionReceived ? 'text-emerald-800' : 'text-amber-800'}`}>
+                        <span className={`text-[11px] font-medium ${paymentRecord.contributionReceived ? 'text-emerald-800' : 'text-[#11310C]/60'}`}>
                           {paymentRecord.contributionReceived ? 'Recebida' : 'Pendente'}
                         </span>
                       </div>
@@ -496,7 +450,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                           aria-label={`Data em que recebeu a ajuda de ${sub.serviceName}`}
                           value={contributionDateDrafts[paymentRecordKey] ?? paymentRecord.contributionDate ?? ''}
                           onChange={(e) => setContributionDateDrafts((prev) => ({ ...prev, [paymentRecordKey]: e.target.value }))}
-                          className="min-w-0 flex-1 px-2.5 py-2 rounded-xl bg-white border border-[#11310C]/15 text-xs text-[#11310C]"
+                          className="min-w-0 flex-1 h-9 px-2.5 rounded-lg glass-field text-xs text-[#11310C]"
                         />
                         <button
                           type="button"
@@ -515,7 +469,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                               });
                             }
                           }}
-                          className="shrink-0 px-3 py-2 rounded-xl bg-white border border-[#11310C]/15 text-[10px] font-extrabold text-[#11310C] cursor-pointer disabled:opacity-50"
+                          className="shrink-0 h-9 px-3 rounded-lg border border-[#11310C]/15 text-[11px] font-semibold text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer disabled:opacity-50"
                         >
                           {paymentRecord.contributionReceived ? 'Desmarcar' : 'Marcar recebida'}
                         </button>
@@ -523,7 +477,7 @@ export const CartoesAssinaturasView: React.FC<CartoesAssinaturasViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onUpdateSubscriptionPayment?.(sub.serviceName, selectedMonth, { contributionDate: contributionDateDrafts[paymentRecordKey] })}
-                            className="shrink-0 px-3 py-2 rounded-xl bg-white border border-[#11310C]/15 text-[10px] font-extrabold text-[#11310C] cursor-pointer"
+                            className="shrink-0 h-9 px-3 rounded-lg border border-[#11310C]/15 text-[11px] font-semibold text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"
                           >
                             Salvar data
                           </button>

@@ -66,19 +66,20 @@
 
   /* Liquid glass claro: pop-ups, menus e controles */
   .glass-overlay {
-    background: rgba(17, 49, 12, 0.18);
-    backdrop-filter: blur(6px) saturate(140%);
-    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    background: rgba(17, 49, 12, 0.38);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
   }
+  /* vidro fosco: quase opaco, para o conteúdo de trás não atrapalhar a leitura */
   .glass-panel {
-    background: linear-gradient(160deg, rgba(252, 252, 250, 0.86) 0%, rgba(252, 252, 250, 0.72) 100%);
-    backdrop-filter: blur(28px) saturate(190%);
-    -webkit-backdrop-filter: blur(28px) saturate(190%);
-    border: 1px solid rgba(255, 255, 255, 0.75);
+    background: linear-gradient(160deg, rgba(252, 252, 250, 0.985) 0%, rgba(248, 249, 243, 0.965) 100%);
+    backdrop-filter: blur(30px) saturate(160%);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
     box-shadow:
-      0 30px 70px -28px rgba(17, 49, 12, 0.45),
-      0 0 0 1px rgba(17, 49, 12, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      0 30px 70px -28px rgba(17, 49, 12, 0.5),
+      0 0 0 1px rgba(17, 49, 12, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
   }
   .glass-control {
     background: rgba(255, 255, 255, 0.55);
@@ -90,11 +91,33 @@
   }
   .glass-control:hover, .glass-control:focus { background: rgba(255, 255, 255, 0.8); border-color: rgba(17, 49, 12, 0.22); }
   .glass-field {
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(17, 49, 12, 0.12);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
   .glass-field:focus { background: rgba(255, 255, 255, 0.9); border-color: rgba(17, 49, 12, 0.45); outline: none; }
+
+  /* Seletor do Strato */
+  .st-select-panel {
+    background: #FCFCFA;
+    border: 1px solid rgba(17, 49, 12, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 22px 50px -20px rgba(17, 49, 12, 0.45), 0 2px 6px rgba(17, 49, 12, 0.06);
+    overflow: hidden;
+    transform-origin: top center;
+    animation: st-select-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  }
+  .st-select-bar {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 0;
+    border-radius: 6px;
+    background: rgba(17, 49, 12, 0.07);
+    box-shadow: inset 2px 0 0 #11310C;
+    transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.14s ease;
+    pointer-events: none;
+  }
 
   /* Liquid glass: vidro escuro translúcido, o gráfico aparece desfocado por trás */
   .liquid-glass-tooltip {
@@ -137,4 +160,9 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(17, 49, 12, 0.3);
+}
+
+@keyframes st-select-in {
+  from { opacity: 0; scale: 0.97; translate: 0 -4px; }
+  to { opacity: 1; scale: 1; translate: 0 0; }
 }

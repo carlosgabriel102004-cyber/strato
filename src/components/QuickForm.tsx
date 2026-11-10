@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { CustomSelect } from './CustomSelect';
 
 export interface QuickField {
   name: string;
@@ -93,15 +94,13 @@ export const QuickForm: React.FC<QuickFormProps> = ({ open, title, subtitle, fie
             <label key={f.name} className={f.half ? 'col-span-1' : 'col-span-2'}>
               <span className="block text-[11px] font-medium uppercase tracking-[0.1em] text-[#11310C]/55 mb-1.5">{f.label}</span>
               {f.type === 'select' ? (
-                <select
-                  className={input}
+                <CustomSelect
+                  className="w-full"
+                  buttonClassName="w-full"
                   value={values[f.name] ?? ''}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                >
-                  {(f.options || []).map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setValues((v) => ({ ...v, [f.name]: val }))}
+                  options={f.options || []}
+                />
               ) : (
                 <input
                   className={`${input} ${f.type === 'money' || f.type === 'number' ? 'text-right tabular-nums' : ''}`}
