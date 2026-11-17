@@ -696,7 +696,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             title="Soma os rendimentos das caixinhas aos ganhos e à sobra"
             className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-[12.5px] font-medium text-[#11310C]/75 hover:text-[#11310C] hover:bg-[#11310C]/5 transition-colors cursor-pointer"
           >
-            <span className={`relative w-7 h-4 rounded-full transition-colors ${includeYields ? '' : 'bg-[#11310C]/20'}`} style={includeYields ? { background: RENDIMENTO_COLOR } : undefined}>
+            <span className={`relative w-7 h-4 rounded-full transition-colors ${includeYields ? 'bg-[#11310C]' : 'bg-[#11310C]/20'}`}>
               <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${includeYields ? 'translate-x-3' : ''}`} />
             </span>
             Somar rendimentos
