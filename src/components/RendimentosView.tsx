@@ -3,7 +3,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { Info } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { useCdi } from '../lib/useCdi';
-import { BANK_LABEL, BANK_NOTE, Bank, accountMonth, bankOf, brToIsoDate, computeYield, daysBetween, irRateFor, parseMonthLabel } from '../lib/cdiYield';
+import { BANK_LABEL, BANK_NOTE, Bank, SHOWS_NET, contaFactor, isBusinessDay, accountMonth, bankOf, brToIsoDate, computeYield, daysBetween, irRateFor, parseMonthLabel } from '../lib/cdiYield';
 import { QuickForm, parseMoney } from './QuickForm';
 import type { AccountMonthRow } from '../types';
 import type { BalanceAccountInfo } from './ResumoView';
@@ -59,7 +59,7 @@ const ChartTip = ({ active, payload, label, mode }: any) => {
         </div>
       ))}
       <div className="flex justify-between gap-3 text-xs pt-1 border-t border-white/10">
-        <span className="text-white/80">Total {mode === 'liquido' ? 'se sacar' : 'bruto'}</span>
+        <span className="text-white/80">Total {mode === 'liquido' ? 'se sacar' : mode === 'bruto' ? 'bruto' : 'na conta'}</span>
         <span className="font-extrabold text-[#C4C240]">{formatCurrency(total)}</span>
       </div>
     </div>
@@ -68,11 +68,17 @@ const ChartTip = ({ active, payload, label, mode }: any) => {
 
 export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpdateAccount }) => {
   const { cdi, error } = useCdi();
-  const [mode, setMode] = useState<'bruto' | 'liquido'>('bruto');
+  const [mode, setMode] = useState<'conta' | 'bruto' | 'liquido'>('conta');
   const [editing, setEditing] = useState<BalanceAccountInfo | null>(null);
   const today = new Date().toLocaleDateString('sv-SE');
   const monthKey = today.slice(0, 7);
   const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
+  const monthBusinessDays = useMemo(() => {
+    const [y, m] = monthKey.split('-').map(Number);
+    let n = 0;
+    for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) if (isBusinessDay(`${monthKey}-${String(d).padStart(2, '0')}`)) n++;
+    return n;
+  }, [monthKey]);
 
   const realRows = useMemo(() => rows.filter((r) => !r.isProjected && brToIsoDate(r.date)), [rows]);
   const lastRow = realRows[realRows.length - 1];
@@ -101,13 +107,13 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
       .filter((x) => x.bal > 0);
   }, [cdi, lastRow, accounts, today, monthKey]);
 
-  const k = (v: number, ir: number) => (mode === 'liquido' ? v * (1 - ir) : v);
+  const k = (v: number, a: { ir: number; bank: Bank }) => (mode === 'liquido' ? v * (1 - a.ir) : mode === 'conta' ? v * contaFactor(a.bank, a.ir) : v);
   const total = now.reduce(
     (t, x) => ({
       montante: t.montante + x.y.balanceEstimate,
-      daily: t.daily + k(x.y.todayGross, x.acc.ir),
-      month: t.month + k(x.month.full, x.acc.ir),
-      toDate: t.toDate + k(x.month.toDate, x.acc.ir),
+      daily: t.daily + k(x.y.todayGross, x.acc),
+      month: t.month + k(x.month.full, x.acc),
+      toDate: t.toDate + k(x.month.toDate, x.acc),
     }),
     { montante: 0, daily: 0, month: 0, toDate: 0 }
   );
@@ -120,7 +126,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
     now.forEach((x) => x.month.days.forEach((d) => {
       const row = byDate.get(d.date) || { date: d.date, label: d.date.slice(8, 10), title: `${isoToBr(d.date)} · CDI do dia`, projected: d.projected };
       const key = x.acc.series.key;
-      row[key] = (row[key] || 0) + k(d.value, x.acc.ir);
+      row[key] = (row[key] || 0) + k(d.value, x.acc);
       byDate.set(d.date, row);
     }));
     return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
@@ -142,13 +148,13 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
       accounts.forEach((a) => {
         const bal = Number(r.balances?.[a.name]) || 0;
         const v = accountMonth(bal, a.pct, cdi, key, today).full;
-        if (v > 0) row[a.series.key] = (row[a.series.key] || 0) + k(v, a.ir);
+        if (v > 0) row[a.series.key] = (row[a.series.key] || 0) + k(v, a);
       });
       out.push(row);
     });
     if (lastRow && !seen.has(monthKey)) {
       const row: any = { key: monthKey, label: `${MONTHS_SHORT[Number(monthKey.slice(5)) - 1]}/${monthKey.slice(2, 4)}`, title: `${monthName} (previsto)`, projected: true };
-      now.forEach((x) => { row[x.acc.series.key] = (row[x.acc.series.key] || 0) + k(x.month.full, x.acc.ir); });
+      now.forEach((x) => { row[x.acc.series.key] = (row[x.acc.series.key] || 0) + k(x.month.full, x.acc); });
       out.push(row);
     }
     return out.slice(-12);
@@ -189,7 +195,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
           </p>
         </div>
         <div className="inline-flex p-1 rounded-lg bg-[#11310C]/6 self-start md:self-auto" role="group" aria-label="Valores">
-          {([['bruto', 'Bruto'], ['liquido', 'Se sacar hoje']] as const).map(([id, label]) => (
+          {([['conta', 'Como cai na conta'], ['bruto', 'Bruto'], ['liquido', 'Tudo sem IR']] as const).map(([id, label]) => (
             <button key={id} type="button" onClick={() => setMode(id)} aria-pressed={mode === id}
               className={`h-8 px-3 rounded-md text-[12.5px] font-medium cursor-pointer transition-colors ${mode === id ? 'bg-white text-[#11310C] shadow-sm' : 'text-[#11310C]/70 hover:text-[#11310C]'}`}>
               {label}
@@ -204,7 +210,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 lg:divide-x divide-[#11310C]/10">
             {kpi('Montante nas caixinhas', formatCurrency(total.montante), `estimado desde o lançamento de ${isoToBr(brToIsoDate(lastRow!.date))}`)}
-            {kpi('Por dia útil', formatCurrency(total.daily), `${formatCurrency(total.daily * 21)} a cada 21 dias úteis`)}
+            {kpi('Por dia útil', formatCurrency(total.daily), `${monthBusinessDays} dias úteis em ${monthName} · fim de semana e feriado não rendem`)}
             {kpi(`Previsto em ${monthName}`, formatCurrency(total.month), `${formatCurrency(total.toDate)} já renderam`, true)}
             {kpi('Rende por mês', `${num(total.montante ? (total.month / total.montante) * 100 : 0)}%`, `${formatCurrency(total.montante ? (total.month / total.montante) * 1000 : 0)} a cada R$ 1.000`)}
           </div>
@@ -267,7 +273,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
               </div>
               <ul className="space-y-3.5">
                 {ranking.map((x) => {
-                  const m = k(x.month.full, x.acc.ir);
+                  const m = k(x.month.full, x.acc);
                   return (
                     <li key={x.acc.id}>
                       <div className="flex items-baseline justify-between gap-3 text-[13px]">
@@ -298,8 +304,8 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
                   <tr className="text-[11px] uppercase tracking-[0.1em] text-[#11310C]/70 border-y border-[#11310C]/10">
                     <th className="font-medium px-5 py-2.5">Caixinha</th>
                     <th className="font-medium px-3 py-2.5 text-right">Montante</th>
-                    <th className="font-medium px-3 py-2.5 text-right">Hoje</th>
-                    <th className="font-medium px-3 py-2.5 text-right">No mês</th>
+                    <th className="font-medium px-3 py-2.5 text-right">Hoje, na conta</th>
+                    <th className="font-medium px-3 py-2.5 text-right">No mês, na conta</th>
                     <th className="font-medium px-3 py-2.5 text-right">Ao ano</th>
                     <th className="font-medium px-5 py-2.5">Impostos se sacar hoje</th>
                   </tr>
@@ -313,12 +319,12 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">{formatCurrency(x.y.balanceEstimate)}</td>
                       <td className="px-3 py-3 text-right tabular-nums">
-                        <div className="font-semibold">{formatCurrency(x.y.todayGross)}</div>
-                        <div className="text-[11px] text-[#11310C]/70">{formatCurrency(x.y.todayNet)} se sacar</div>
+                        <div className="font-semibold">{formatCurrency(x.y.todayGross * contaFactor(x.acc.bank, x.acc.ir))}</div>
+                        <div className="text-[11px] text-[#11310C]/70">{SHOWS_NET[x.acc.bank] ? `${formatCurrency(x.y.todayGross)} bruto` : `${formatCurrency(x.y.todayNet)} se sacar`}</div>
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">
-                        <div className="font-semibold">{formatCurrency(x.month.full)}</div>
-                        <div className="text-[11px] text-[#11310C]/70">{formatCurrency(x.month.full * (1 - x.acc.ir))} se sacar</div>
+                        <div className="font-semibold">{formatCurrency(x.month.full * contaFactor(x.acc.bank, x.acc.ir))}</div>
+                        <div className="text-[11px] text-[#11310C]/70">{SHOWS_NET[x.acc.bank] ? `${formatCurrency(x.month.full)} bruto` : `${formatCurrency(x.month.full * (1 - x.acc.ir))} se sacar`}</div>
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">{last ? `${num((Math.pow(1 + (last.rate / 100) * (x.acc.pct / 100), 252) - 1) * 100)}%` : '—'}</td>
                       <td className="px-5 py-3">
@@ -341,7 +347,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
             </div>
             <footer className="px-5 py-4 border-t border-[#11310C]/10 space-y-1.5 text-[11px] text-[#11310C]/70">
               <p className="flex gap-1.5"><Info className="w-3.5 h-3.5 shrink-0 mt-px" />
-                Rende sobre o valor bruto, só em dia útil. O IR só é cobrado no saque (22,5% até 6 meses, 20% até 1 ano, 17,5% até 2 anos, 15% depois). O IOF só existe se sacar nos primeiros 30 dias de cada depósito. O montante parte do último saldo lançado no Resumo.
+                “Como cai na conta” mostra o que cada banco credita: no PicPay e no Mercado Pago o rendimento já vem sem o IR; no Nubank vem bruto e o IR só sai no resgate. Rende só em dia útil. O IR só é cobrado no saque (22,5% até 6 meses, 20% até 1 ano, 17,5% até 2 anos, 15% depois). O IOF só existe se sacar nos primeiros 30 dias de cada depósito. O montante parte do último saldo lançado no Resumo.
               </p>
               {banksPresent.filter((b) => BANK_NOTE[b]).map((b) => <p key={b} className="pl-5">{BANK_NOTE[b]}</p>)}
             </footer>

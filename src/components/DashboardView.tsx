@@ -507,7 +507,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         Renda: mIncome,
         Gastos: mExpenses,
         Sobra: mLeftover,
-        Rendimentos: (() => { const y = yieldOf(m); return y ? Math.round(y.net * 100) / 100 : undefined; })(),
+        Rendimentos: (() => { const y = yieldOf(m); return y ? Math.round(y.conta * 100) / 100 : undefined; })(),
         isCardCycleMonth,
         activeCardsInCycle: cardCycleInfo.byMonth[m] || [],
         subscriptionsTotal,
@@ -738,8 +738,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Rendimentos das caixinhas x salário */}
       {currentYield && currentYield.gross > 0 && (() => {
-        const pctOfSalary = salary && salary.amount > 0 ? (currentYield.net / salary.amount) * 100 : null;
-        const share = salary && salary.amount > 0 ? Math.min(100, (currentYield.net / (salary.amount + currentYield.net)) * 100) : 0;
+        const pctOfSalary = salary && salary.amount > 0 ? (currentYield.conta / salary.amount) * 100 : null;
+        const share = salary && salary.amount > 0 ? Math.min(100, (currentYield.conta / (salary.amount + currentYield.conta)) * 100) : 0;
         const monthLower = MONTH_NAMES[new Date().getMonth()].toLowerCase();
         return (
           <div className="rounded-2xl border border-[#11310C]/10 bg-white/55 px-5 py-4 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
@@ -749,13 +749,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 flex-1">
               <div>
-                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.dailyNet)}</div>
-                <div className="text-[11px] text-[#11310C]/70">por dia útil · {formatCurrency(currentYield.dailyGross)} bruto</div>
+                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.dailyConta)}</div>
+                <div className="text-[11px] text-[#11310C]/70">por dia útil, como cai na conta</div>
               </div>
               <div>
-                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.net)}</div>
+                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.conta)}</div>
                 <div className="text-[11px] text-[#11310C]/70">
-                  {currentYield.isPartial ? `previsto em ${monthLower}` : `em ${monthLower}`} · {formatCurrency(currentYield.toDateNet)} até hoje
+                  {currentYield.isPartial ? `previsto em ${monthLower}` : `em ${monthLower}`} · {formatCurrency(currentYield.toDateConta)} até hoje
                 </div>
               </div>
               <div className="col-span-2 sm:col-span-1">

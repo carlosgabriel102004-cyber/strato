@@ -55,6 +55,11 @@ export const BANK_NOTE: Record<Bank, string> = {
   outro: '',
 };
 
+/** Bancos cujo app já mostra o rendimento sem o IR: lá o que cai na conta é o líquido. */
+export const SHOWS_NET: Record<Bank, boolean> = { nubank: false, picpay: true, mercadopago: true, outro: false };
+/** Fator para chegar ao valor "como cai na conta": líquido no PicPay e Mercado Pago, bruto no Nubank. */
+export const contaFactor = (bank: Bank, ir: number) => (SHOWS_NET[bank] ? 1 - ir : 1);
+
 export const BANK_LABEL: Record<Bank, string> = { nubank: 'Nubank', picpay: 'PicPay', mercadopago: 'Mercado Pago', outro: '' };
 
 const DAY = 86400000;
@@ -148,6 +153,9 @@ export interface MonthYield {
   toDateNet: number;
   dailyGross: number; // por dia útil, com o último CDI
   dailyNet: number;
+  conta: number; // como cai na conta: líquido no PicPay/Mercado Pago, bruto no Nubank
+  toDateConta: number;
+  dailyConta: number;
   isPartial: boolean; // mês corrente: parte é previsão
 }
 
@@ -177,7 +185,7 @@ export function monthYield(label: string, input: MonthYieldInput, cdi: CdiData, 
     }
   }
 
-  const out: MonthYield = { gross: 0, net: 0, toDateGross: 0, toDateNet: 0, dailyGross: 0, dailyNet: 0, isPartial: remaining > 0 };
+  const out: MonthYield = { gross: 0, net: 0, toDateGross: 0, toDateNet: 0, dailyGross: 0, dailyNet: 0, conta: 0, toDateConta: 0, dailyConta: 0, isPartial: remaining > 0 };
   for (const acc of input.accounts) {
     if (!(acc.ratePct > 0)) continue;
     const bal = Number(row.balances?.[acc.name]) || 0;
@@ -193,6 +201,10 @@ export function monthYield(label: string, input: MonthYieldInput, cdi: CdiData, 
     out.net += full * (1 - ir);
     out.dailyGross += daily;
     out.dailyNet += daily * (1 - ir);
+    const cf = contaFactor(bankOf(acc.name), ir);
+    out.conta += full * cf;
+    out.toDateConta += toDate * cf;
+    out.dailyConta += daily * cf;
   }
   return out;
 }
