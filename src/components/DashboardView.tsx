@@ -160,7 +160,7 @@ interface DashboardViewProps {
   balanceAccounts?: { name: string; investedSince?: string | null }[];
 }
 
-const RENDIMENTO_COLOR = '#2A7F62';
+const RENDIMENTO_COLOR = '#54A6C9'; // chart-azul do design system (só em gráficos e marcadores)
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const isSalary = (tx: Transaction) => tx.type === 'income' && /sal[aá]rio/i.test(`${tx.description} ${tx.category || ''}`);
 const txIsoDate = (d: string) => (/^\d{4}-/.test(d) ? d.slice(0, 10) : d.split('/').reverse().join('-'));
@@ -742,11 +742,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 flex-1">
               <div>
-                <div className="font-serif text-2xl font-semibold tracking-tight" style={{ color: RENDIMENTO_COLOR }}>{formatCurrency(currentYield.dailyNet)}</div>
+                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.dailyNet)}</div>
                 <div className="text-[11px] text-[#11310C]/70">por dia útil · {formatCurrency(currentYield.dailyGross)} bruto</div>
               </div>
               <div>
-                <div className="font-serif text-2xl font-semibold tracking-tight" style={{ color: RENDIMENTO_COLOR }}>{formatCurrency(currentYield.net)}</div>
+                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.net)}</div>
                 <div className="text-[11px] text-[#11310C]/70">
                   {currentYield.isPartial ? `previsto em ${monthLower}` : `em ${monthLower}`} · {formatCurrency(currentYield.toDateNet)} até hoje
                 </div>
