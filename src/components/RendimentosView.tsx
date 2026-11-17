@@ -15,8 +15,8 @@ interface Props {
   onUpdateAccount?: (id: string, changes: BalanceAccountChanges) => Promise<void>;
 }
 
-// Cores das marcas, para reconhecer de onde vem cada parte.
-const BANK_COLOR: Record<Bank, string> = { nubank: '#820AD1', picpay: '#1F9D55', mercadopago: '#009EE3', outro: '#11310C' };
+// Cores das marcas puxadas para a paleta do Strato: mesmo tom de cada banco, mais terroso e menos saturado.
+const BANK_COLOR: Record<Bank, string> = { nubank: '#6A4C86', picpay: '#3F7F4F', mercadopago: '#3D7393', outro: '#11310C' };
 const BANK_ORDER: Bank[] = ['nubank', 'picpay', 'mercadopago', 'outro'];
 const bankName = (b: Bank) => BANK_LABEL[b] || 'Outros';
 const pctOf = (name: string) => {
