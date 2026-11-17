@@ -160,7 +160,14 @@ interface DashboardViewProps {
   balanceAccounts?: { name: string; investedSince?: string | null }[];
 }
 
-const RENDIMENTO_COLOR = '#54A6C9'; // chart-azul do design system (só em gráficos e marcadores)
+const RENDIMENTO_COLOR = '#C4C240'; // citron: rendimentos das caixinhas
+// Séries do gráfico principal: uma cor por linha, todas da paleta, sem preenchimentos que se misturam.
+const CHART_SERIES = [
+  { key: 'Renda', color: '#11310C' },
+  { key: 'Gastos', color: '#E13513' },
+  { key: 'Sobra', color: '#54A6C9' },
+  { key: 'Rendimentos', color: RENDIMENTO_COLOR },
+];
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const isSalary = (tx: Transaction) => tx.type === 'income' && /sal[aá]rio/i.test(`${tx.description} ${tx.category || ''}`);
 const txIsoDate = (d: string) => (/^\d{4}-/.test(d) ? d.slice(0, 10) : d.split('/').reverse().join('-'));
@@ -900,19 +907,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <div className="h-4 w-px bg-[#11310C]/15 hidden sm:block" />
 
-              <div className="flex items-center gap-3 text-xs font-bold text-[#11310C]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#11310C]" /> Renda
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#C4C240]" /> Sobra
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E13513]" /> Gastos
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: RENDIMENTO_COLOR }} /> Rendimentos
-                </span>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-[#11310C]">
+                {CHART_SERIES.map((sr) => (
+                  <span key={sr.key} className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-[3px] rounded-full" style={{ background: sr.color }} /> {sr.key}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -921,21 +921,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <ResponsiveContainer width="100%" height="100%" debounce={100}>
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorSobra" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#C4C240" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#C4C240" stopOpacity={0.0} />
-                  </linearGradient>
                   <linearGradient id="colorRenda" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#11310C" stopOpacity={0.6} />
-                    <stop offset="95%" stopColor="#11310C" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="colorRendimentos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={RENDIMENTO_COLOR} stopOpacity={0.45} />
-                    <stop offset="95%" stopColor={RENDIMENTO_COLOR} stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#E13513" stopOpacity={0.5} />
-                    <stop offset="95%" stopColor="#E13513" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#11310C" stopOpacity={0.14} />
+                    <stop offset="95%" stopColor="#11310C" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#11310C" strokeOpacity={0.08} />
@@ -948,51 +936,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#11310C' }} tickFormatter={(v) => `R$${v/1000}k`} />
                 <Tooltip content={<CustomAreaTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="Renda"
-                  stroke="#11310C"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorRenda)"
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  animationEasing="ease-out"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Gastos"
-                  stroke="#E13513"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorGastos)"
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  animationEasing="ease-out"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Rendimentos"
-                  stroke={RENDIMENTO_COLOR}
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorRendimentos)"
-                  connectNulls
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  animationEasing="ease-out"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Sobra"
-                  stroke="#C4C240"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorSobra)"
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  animationEasing="ease-out"
-                />
+                {CHART_SERIES.map((sr) => (
+                  <Area
+                    key={sr.key}
+                    type="monotone"
+                    dataKey={sr.key}
+                    stroke={sr.color}
+                    strokeWidth={2.5}
+                    fill={sr.key === 'Renda' ? 'url(#colorRenda)' : 'none'}
+                    fillOpacity={1}
+                    dot={{ r: 3, fill: sr.color, stroke: '#FCFCFA', strokeWidth: 1.5 }}
+                    activeDot={{ r: 5, fill: sr.color, stroke: '#FCFCFA', strokeWidth: 2 }}
+                    connectNulls
+                    isAnimationActive={true}
+                    animationDuration={800}
+                    animationEasing="ease-out"
+                  />
+                ))}
               </AreaChart>
             </ResponsiveContainer>
           </div>
