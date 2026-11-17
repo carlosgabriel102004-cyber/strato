@@ -160,13 +160,13 @@ interface DashboardViewProps {
   balanceAccounts?: { name: string; investedSince?: string | null }[];
 }
 
-const RENDIMENTO_COLOR = '#C4C240'; // citron: rendimentos das caixinhas
+const RENDIMENTO_COLOR = '#54A6C9'; // chart-azul: rendimentos das caixinhas
 // Séries do gráfico principal: áreas com degradê leve, a maior desenhada primeiro para as linhas menores ficarem por cima.
 const CHART_SERIES = [
   { key: 'Renda', color: '#11310C', fill: 0.32 },
-  { key: 'Sobra', color: '#54A6C9', fill: 0.35 },
+  { key: 'Sobra', color: '#C4C240', fill: 0.45 },
   { key: 'Gastos', color: '#E13513', fill: 0.28 },
-  { key: 'Rendimentos', color: RENDIMENTO_COLOR, fill: 0.45 },
+  { key: 'Rendimentos', color: RENDIMENTO_COLOR, fill: 0.35 },
 ];
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const isSalary = (tx: Transaction) => tx.type === 'income' && /sal[aá]rio/i.test(`${tx.description} ${tx.category || ''}`);
@@ -656,7 +656,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Primary Financial Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden divide-y sm:divide-y-0 lg:divide-x divide-[#11310C]/10">
+      <div className="rounded-2xl border border-[#11310C]/10 bg-white/55 overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-[#11310C]/10">
         {/* Metric 1: Ganho no Período */}
         <div className="p-5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
@@ -674,6 +675,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
             <span className="text-[11px] font-medium text-[#11310C]/60">período selecionado</span>
           </div>
+          {timeRange === 'este-mes' && currentYield && currentYield.toDateConta > 0 && (
+            <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-[#11310C]/8 text-[11px] text-[#11310C]/70">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: RENDIMENTO_COLOR }} />
+              <span>+ {formatCurrency(currentYield.toDateConta)} de rendimentos = <strong className="text-[#11310C] tabular-nums">{formatCurrency(displayIncome + currentYield.toDateConta)}</strong> no total</span>
+            </div>
+          )}
         </div>
 
         {/* Metric 2: Gasto no Período (Chili Red) */}
@@ -736,47 +743,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Rendimentos das caixinhas x salário */}
-      {currentYield && currentYield.gross > 0 && (() => {
-        const pctOfSalary = salary && salary.amount > 0 ? (currentYield.conta / salary.amount) * 100 : null;
-        const share = salary && salary.amount > 0 ? Math.min(100, (currentYield.conta / (salary.amount + currentYield.conta)) * 100) : 0;
-        const monthLower = MONTH_NAMES[new Date().getMonth()].toLowerCase();
-        return (
-          <div className="rounded-2xl border border-[#11310C]/10 bg-white/55 px-5 py-4 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: RENDIMENTO_COLOR }} />
-              <span className="text-[11px] font-medium text-[#11310C]/70 uppercase tracking-[0.12em]">Rendimentos das caixinhas</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 flex-1">
-              <div>
-                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.dailyConta)}</div>
-                <div className="text-[11px] text-[#11310C]/70">por dia útil, como cai na conta</div>
-              </div>
-              <div>
-                <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">{formatCurrency(currentYield.conta)}</div>
-                <div className="text-[11px] text-[#11310C]/70">
-                  {currentYield.isPartial ? `previsto em ${monthLower}` : `em ${monthLower}`} · {formatCurrency(currentYield.toDateConta)} até hoje
-                </div>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                {pctOfSalary !== null ? (
-                  <>
-                    <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">
-                      {pctOfSalary.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% <span className="text-sm font-sans font-medium text-[#11310C]/70">do salário</span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 rounded-full bg-[#11310C] overflow-hidden flex" title={`${salary!.label}: ${formatCurrency(salary!.amount)}`}>
-                      <span className="h-full ml-auto" style={{ width: `${share}%`, background: RENDIMENTO_COLOR, minWidth: 3 }} />
-                    </div>
-                    <div className="text-[11px] text-[#11310C]/70 mt-1">{salary!.label}: {formatCurrency(salary!.amount)}</div>
-                  </>
-                ) : (
-                  <div className="text-[11px] text-[#11310C]/70">Lance seu salário com “salário” na descrição para comparar.</div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Rendimentos das caixinhas: uma linha só, embaixo dos números */}
+      {currentYield && currentYield.gross > 0 && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 py-2.5 border-t border-[#11310C]/10 text-[12px] text-[#11310C]/70">
+          <span className="flex items-center gap-1.5 font-semibold text-[#11310C]">
+            <span className="w-2 h-2 rounded-full" style={{ background: RENDIMENTO_COLOR }} /> Rendimentos
+          </span>
+          <span><strong className="text-[#11310C] tabular-nums">{formatCurrency(currentYield.dailyConta)}</strong> por dia útil</span>
+          <span>
+            <strong className="text-[#11310C] tabular-nums">{formatCurrency(currentYield.conta)}</strong>{' '}
+            {currentYield.isPartial ? 'previsto em' : 'em'} {MONTH_NAMES[new Date().getMonth()].toLowerCase()} ({formatCurrency(currentYield.toDateConta)} até hoje)
+          </span>
+          {salary && salary.amount > 0 && (
+            <span><strong className="text-[#11310C] tabular-nums">{((currentYield.conta / salary.amount) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong> do salário</span>
+          )}
+        </div>
+      )}
+      </div>
 
       {/* Tax Calculation Breakdown Card (When Enabled in Settings) */}
       {isTaxActive && (
