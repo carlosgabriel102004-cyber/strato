@@ -675,12 +675,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
             <span className="text-[11px] font-medium text-[#11310C]/60">período selecionado</span>
           </div>
-          {timeRange === 'este-mes' && currentYield && currentYield.toDateConta > 0 && (
-            <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-[#11310C]/8 text-[11px] text-[#11310C]/70">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: RENDIMENTO_COLOR }} />
-              <span>+ {formatCurrency(currentYield.toDateConta)} de rendimentos = <strong className="text-[#11310C] tabular-nums">{formatCurrency(displayIncome + currentYield.toDateConta)}</strong> no total</span>
-            </div>
-          )}
         </div>
 
         {/* Metric 2: Gasto no Período (Chili Red) */}
@@ -756,6 +750,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </span>
           {salary && salary.amount > 0 && (
             <span><strong className="text-[#11310C] tabular-nums">{((currentYield.conta / salary.amount) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong> do salário</span>
+          )}
+          {timeRange === 'este-mes' && (
+            <span className="sm:ml-auto">
+              Ganhos + rendimentos: <strong className="text-[#11310C] tabular-nums">{formatCurrency(displayIncome + currentYield.toDateConta)}</strong>
+            </span>
           )}
         </div>
       )}
