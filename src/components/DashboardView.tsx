@@ -161,12 +161,12 @@ interface DashboardViewProps {
 }
 
 const RENDIMENTO_COLOR = '#C4C240'; // citron: rendimentos das caixinhas
-// Séries do gráfico principal: uma cor por linha, todas da paleta, sem preenchimentos que se misturam.
+// Séries do gráfico principal: áreas com degradê leve, a maior desenhada primeiro para as linhas menores ficarem por cima.
 const CHART_SERIES = [
-  { key: 'Renda', color: '#11310C' },
-  { key: 'Gastos', color: '#E13513' },
-  { key: 'Sobra', color: '#54A6C9' },
-  { key: 'Rendimentos', color: RENDIMENTO_COLOR },
+  { key: 'Renda', color: '#11310C', fill: 0.32 },
+  { key: 'Sobra', color: '#54A6C9', fill: 0.35 },
+  { key: 'Gastos', color: '#E13513', fill: 0.28 },
+  { key: 'Rendimentos', color: RENDIMENTO_COLOR, fill: 0.45 },
 ];
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const isSalary = (tx: Transaction) => tx.type === 'income' && /sal[aá]rio/i.test(`${tx.description} ${tx.category || ''}`);
@@ -921,10 +921,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <ResponsiveContainer width="100%" height="100%" debounce={100}>
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorRenda" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#11310C" stopOpacity={0.14} />
-                    <stop offset="95%" stopColor="#11310C" stopOpacity={0} />
-                  </linearGradient>
+                  {CHART_SERIES.map((sr) => (
+                    <linearGradient key={sr.key} id={`chartFill-${sr.key}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={sr.color} stopOpacity={sr.fill} />
+                      <stop offset="95%" stopColor={sr.color} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#11310C" strokeOpacity={0.08} />
                 <XAxis
@@ -942,10 +944,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     type="monotone"
                     dataKey={sr.key}
                     stroke={sr.color}
-                    strokeWidth={2.5}
-                    fill={sr.key === 'Renda' ? 'url(#colorRenda)' : 'none'}
+                    strokeWidth={3}
+                    fill={`url(#chartFill-${sr.key})`}
                     fillOpacity={1}
-                    dot={{ r: 3, fill: sr.color, stroke: '#FCFCFA', strokeWidth: 1.5 }}
                     activeDot={{ r: 5, fill: sr.color, stroke: '#FCFCFA', strokeWidth: 2 }}
                     connectNulls
                     isAnimationActive={true}
