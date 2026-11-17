@@ -732,6 +732,7 @@ export function App() {
                 onOpenManualModal={() => setIsManualModalOpen(true)}
                 onUpdateMonthData={handleUpdateMonthSummary}
                 taxSettings={taxSettings}
+                balanceAccounts={balanceAccounts}
               />
             )}
 

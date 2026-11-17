@@ -21,7 +21,7 @@ const brDate = (offsetDays: number) => {
 
 export async function fetchCdi(): Promise<CdiData> {
   const [dailyRes, annualRes] = await Promise.all([
-    fetch(`${SGS}.12/dados?formato=json&dataInicial=${brDate(-75)}&dataFinal=${brDate(0)}`),
+    fetch(`${SGS}.12/dados?formato=json&dataInicial=${brDate(-420)}&dataFinal=${brDate(0)}`),
     fetch(`${SGS}.4389/dados/ultimos/1?formato=json`),
   ]);
   if (!dailyRes.ok) throw new Error(`Banco Central respondeu ${dailyRes.status}`);

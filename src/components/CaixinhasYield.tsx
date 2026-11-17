@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Info } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
+import { useCdi } from '../lib/useCdi';
 import { BANK_LABEL, BANK_NOTE, Bank, CdiData, YieldAccount, computeYield } from '../lib/cdiYield';
 
 interface Props {
@@ -8,35 +9,12 @@ interface Props {
   onEditAccount?: (id: string) => void;
 }
 
-const CACHE_KEY = 'strato:cdi';
-const readCache = (): CdiData | null => {
-  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { return null; }
-};
 const isoToBr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
 const pctText = (v: number, digits = 2) => v.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 /** Quanto cada caixinha rende hoje e no mês, com o CDI oficial do Banco Central. */
 export const CaixinhasYield: React.FC<Props> = ({ accounts, onEditAccount }) => {
-  const [cdi, setCdi] = useState<CdiData | null>(() => readCache());
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    fetch('/api/cdi')
-      .then(async (r) => {
-        const body = await r.json();
-        if (!r.ok) throw new Error(body?.error || 'CDI indisponível');
-        return body as CdiData;
-      })
-      .then((data) => {
-        if (!alive) return;
-        setCdi(data);
-        setError(null);
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* sem cache */ }
-      })
-      .catch((e) => alive && setError(e.message));
-    return () => { alive = false; };
-  }, []);
+  const { cdi, error } = useCdi();
 
   const today = new Date().toLocaleDateString('sv-SE'); // AAAA-MM-DD no fuso local
   const rows = useMemo(

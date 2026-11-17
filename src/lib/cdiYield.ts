@@ -112,3 +112,87 @@ export function computeYield(acc: YieldAccount, cdi: CdiData, today: string): Yi
     iofEndsOn,
   };
 }
+
+// ---------- Rendimento por mês (Dashboard) ----------
+
+const MONTHS_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Feriados nacionais (bolsa/CDI não corre). Fixos + móveis de 2026 e 2027.
+const FIXED_HOLIDAYS = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25'];
+const MOVABLE_HOLIDAYS = ['2026-02-16', '2026-02-17', '2026-04-03', '2026-06-04', '2027-02-08', '2027-02-09', '2027-03-26', '2027-05-27'];
+const isBusinessDay = (iso: string) => {
+  const wd = toDate(iso).getDay();
+  return wd !== 0 && wd !== 6 && !FIXED_HOLIDAYS.includes(iso.slice(5)) && !MOVABLE_HOLIDAYS.includes(iso);
+};
+
+const parseMonthLabel = (label: string) => {
+  const [name, year] = (label || '').trim().toLowerCase().split(/\s+/);
+  const m = MONTHS_PT.indexOf(name);
+  return m >= 0 && Number(year) ? { y: Number(year), m: m + 1 } : null;
+};
+const brToIsoDate = (br: string) => {
+  if (/^\d{4}-\d{2}-\d{2}/.test(br)) return br.slice(0, 10);
+  const [d, m, y] = (br || '').split('/');
+  return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
+};
+
+export interface MonthYieldInput {
+  rows: { date: string; monthLabel: string; balances: Record<string, number>; isProjected?: boolean }[];
+  accounts: { name: string; ratePct: number; investedSince?: string | null }[];
+}
+
+export interface MonthYield {
+  gross: number; // mês inteiro (no mês corrente, previsto)
+  net: number;
+  toDateGross: number; // só o que já rendeu
+  toDateNet: number;
+  dailyGross: number; // por dia útil, com o último CDI
+  dailyNet: number;
+  isPartial: boolean; // mês corrente: parte é previsão
+}
+
+/** Rendimento estimado das caixinhas num mês, a partir do saldo lançado naquele mês. */
+export function monthYield(label: string, input: MonthYieldInput, cdi: CdiData, today: string): MonthYield | null {
+  const ym = parseMonthLabel(label);
+  if (!ym || !cdi.daily.length) return null;
+  const monthKey = `${ym.y}-${String(ym.m).padStart(2, '0')}`;
+  if (monthKey > today.slice(0, 7)) return null;
+  const firstCdi = cdi.daily[0].date;
+  if (`${monthKey}-01` < firstCdi) return null; // fora do histórico do CDI
+
+  const realRows = input.rows.filter((r) => !r.isProjected && brToIsoDate(r.date));
+  const row = realRows.find((r) => r.monthLabel.toLowerCase() === label.toLowerCase())
+    || [...realRows].reverse().find((r) => brToIsoDate(r.date) <= `${monthKey}-31`);
+  if (!row) return null;
+
+  const lastCdi = cdi.daily[cdi.daily.length - 1];
+  const monthDays = cdi.daily.filter((d) => d.date.startsWith(monthKey));
+  // dias úteis do mês ainda sem CDI publicado (até o fim do mês), com a última taxa
+  let remaining = 0;
+  if (monthKey === today.slice(0, 7)) {
+    const lastDay = new Date(ym.y, ym.m, 0).getDate();
+    for (let d = 1; d <= lastDay; d++) {
+      const iso = `${monthKey}-${String(d).padStart(2, '0')}`;
+      if (iso > lastCdi.date && isBusinessDay(iso)) remaining++;
+    }
+  }
+
+  const out: MonthYield = { gross: 0, net: 0, toDateGross: 0, toDateNet: 0, dailyGross: 0, dailyNet: 0, isPartial: remaining > 0 };
+  for (const acc of input.accounts) {
+    if (!(acc.ratePct > 0)) continue;
+    const bal = Number(row.balances?.[acc.name]) || 0;
+    if (bal <= 0) continue;
+    const ir = acc.investedSince ? irRateFor(daysBetween(acc.investedSince, today)) : 0.225;
+    const f = monthDays.reduce((x, d) => x * (1 + (d.rate / 100) * (acc.ratePct / 100)), 1);
+    const toDate = bal * (f - 1);
+    const daily = bal * f * (lastCdi.rate / 100) * (acc.ratePct / 100);
+    const full = toDate + daily * remaining;
+    out.toDateGross += toDate;
+    out.toDateNet += toDate * (1 - ir);
+    out.gross += full;
+    out.net += full * (1 - ir);
+    out.dailyGross += daily;
+    out.dailyNet += daily * (1 - ir);
+  }
+  return out;
+}

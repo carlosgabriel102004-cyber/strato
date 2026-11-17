@@ -1,5 +1,7 @@
 import { FilterMenu } from './FilterMenu';
 import React, { useState, useEffect, useMemo } from 'react';
+import { useCdi } from '../lib/useCdi';
+import { monthYield } from '../lib/cdiYield';
 import { motion } from 'motion/react';
 import {
   TrendingUp,
@@ -154,7 +156,14 @@ interface DashboardViewProps {
   onOpenManualModal: () => void;
   onUpdateMonthData?: (monthKey: string, updated: Partial<MonthSummaryData>) => void;
   taxSettings?: TaxSettings;
+  /** contas com a data de aplicação (faixa do IR dos rendimentos) */
+  balanceAccounts?: { name: string; investedSince?: string | null }[];
 }
+
+const RENDIMENTO_COLOR = '#2A7F62';
+const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const isSalary = (tx: Transaction) => tx.type === 'income' && /sal[aá]rio/i.test(`${tx.description} ${tx.category || ''}`);
+const txIsoDate = (d: string) => (/^\d{4}-/.test(d) ? d.slice(0, 10) : d.split('/').reverse().join('-'));
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   currentMonthData,
@@ -167,7 +176,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenManualModal,
   onUpdateMonthData,
   taxSettings,
+  balanceAccounts = [],
 }) => {
+  const { cdi } = useCdi();
+  const todayIso = new Date().toLocaleDateString('sv-SE');
+  const todayMonthLabel = `${MONTH_NAMES[new Date().getMonth()]} ${new Date().getFullYear()}`;
+  const yieldInput = useMemo(() => {
+    const since = new Map(balanceAccounts.map((a) => [a.name, a.investedSince]));
+    return {
+      rows: currentMonthData.accountDetailsRows || [],
+      accounts: (currentMonthData.accountColumnsMeta || []).map((c) => ({ ...c, investedSince: since.get(c.name) })),
+    };
+  }, [currentMonthData.accountDetailsRows, currentMonthData.accountColumnsMeta, balanceAccounts]);
+  const yieldOf = (label: string) => (cdi ? monthYield(label, yieldInput, cdi, todayIso) : null);
+  const currentYield = useMemo(() => yieldOf(todayMonthLabel), [cdi, yieldInput, todayMonthLabel]);
+  const salary = useMemo(() => {
+    const salaries = (recentTransactions || []).filter(isSalary).map((t) => ({ ...t, iso: txIsoDate(t.date) })).sort((a, b) => b.iso.localeCompare(a.iso));
+    const thisMonth = salaries.filter((t) => t.iso.startsWith(todayIso.slice(0, 7)));
+    if (thisMonth.length) return { amount: thisMonth.reduce((s, t) => s + t.amount, 0), label: `salário de ${MONTH_NAMES[new Date().getMonth()].toLowerCase()}` };
+    if (salaries.length) {
+      const m = Number(salaries[0].iso.slice(5, 7)) - 1;
+      const sameMonth = salaries.filter((t) => t.iso.slice(0, 7) === salaries[0].iso.slice(0, 7));
+      return { amount: sameMonth.reduce((s, t) => s + t.amount, 0), label: `último salário (${MONTH_NAMES[m].toLowerCase()})` };
+    }
+    return null;
+  }, [recentTransactions, todayIso]);
   const [timeRange, setTimeRange] = useState<'este-mes' | 'semana' | '3-meses' | 'ano' | 'personalizado'>('este-mes');
   const [customRange, setCustomRange] = useState<{ start: string; end: string }>({ start: '2026-08-01', end: '2026-08-31' });
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -467,13 +500,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         Renda: mIncome,
         Gastos: mExpenses,
         Sobra: mLeftover,
+        Rendimentos: (() => { const y = yieldOf(m); return y ? Math.round(y.net * 100) / 100 : undefined; })(),
         isCardCycleMonth,
         activeCardsInCycle: cardCycleInfo.byMonth[m] || [],
         subscriptionsTotal,
         subscriptionNames,
       };
     });
-  }, [selectedChartMonthsKeys, effectiveMonthsData, recentTransactions, cardCycleInfo, subscriptions, creditCards]);
+  }, [selectedChartMonthsKeys, effectiveMonthsData, recentTransactions, cardCycleInfo, subscriptions, creditCards, cdi, yieldInput]);
 
   // Date parsing helper for DD/MM/YYYY or YYYY-MM-DD
   const parseDateMs = (dateStr: string): number => {
@@ -695,6 +729,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* Rendimentos das caixinhas x salário */}
+      {currentYield && currentYield.gross > 0 && (() => {
+        const pctOfSalary = salary && salary.amount > 0 ? (currentYield.net / salary.amount) * 100 : null;
+        const share = salary && salary.amount > 0 ? Math.min(100, (currentYield.net / (salary.amount + currentYield.net)) * 100) : 0;
+        const monthLower = MONTH_NAMES[new Date().getMonth()].toLowerCase();
+        return (
+          <div className="rounded-2xl border border-[#11310C]/10 bg-white/55 px-5 py-4 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: RENDIMENTO_COLOR }} />
+              <span className="text-[11px] font-medium text-[#11310C]/70 uppercase tracking-[0.12em]">Rendimentos das caixinhas</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 flex-1">
+              <div>
+                <div className="font-serif text-2xl font-semibold tracking-tight" style={{ color: RENDIMENTO_COLOR }}>{formatCurrency(currentYield.dailyNet)}</div>
+                <div className="text-[11px] text-[#11310C]/70">por dia útil · {formatCurrency(currentYield.dailyGross)} bruto</div>
+              </div>
+              <div>
+                <div className="font-serif text-2xl font-semibold tracking-tight" style={{ color: RENDIMENTO_COLOR }}>{formatCurrency(currentYield.net)}</div>
+                <div className="text-[11px] text-[#11310C]/70">
+                  {currentYield.isPartial ? `previsto em ${monthLower}` : `em ${monthLower}`} · {formatCurrency(currentYield.toDateNet)} até hoje
+                </div>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                {pctOfSalary !== null ? (
+                  <>
+                    <div className="font-serif text-2xl font-semibold tracking-tight text-[#11310C]">
+                      {pctOfSalary.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% <span className="text-sm font-sans font-medium text-[#11310C]/70">do salário</span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 rounded-full bg-[#11310C] overflow-hidden flex" title={`${salary!.label}: ${formatCurrency(salary!.amount)}`}>
+                      <span className="h-full ml-auto" style={{ width: `${share}%`, background: RENDIMENTO_COLOR, minWidth: 3 }} />
+                    </div>
+                    <div className="text-[11px] text-[#11310C]/70 mt-1">{salary!.label}: {formatCurrency(salary!.amount)}</div>
+                  </>
+                ) : (
+                  <div className="text-[11px] text-[#11310C]/70">Lance seu salário com “salário” na descrição para comparar.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Tax Calculation Breakdown Card (When Enabled in Settings) */}
       {isTaxActive && (
         <div className="glass-card rounded-3xl p-6 border border-white/90 space-y-4">
@@ -834,6 +910,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#E13513]" /> Gastos
                 </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: RENDIMENTO_COLOR }} /> Rendimentos
+                </span>
               </div>
             </div>
           </div>
@@ -849,6 +928,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <linearGradient id="colorRenda" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#11310C" stopOpacity={0.6} />
                     <stop offset="95%" stopColor="#11310C" stopOpacity={0.0} />
+                  </linearGradient>
+                  <linearGradient id="colorRendimentos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={RENDIMENTO_COLOR} stopOpacity={0.45} />
+                    <stop offset="95%" stopColor={RENDIMENTO_COLOR} stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#E13513" stopOpacity={0.5} />
@@ -883,6 +966,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorGastos)"
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationEasing="ease-out"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Rendimentos"
+                  stroke={RENDIMENTO_COLOR}
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorRendimentos)"
+                  connectNulls
                   isAnimationActive={true}
                   animationDuration={800}
                   animationEasing="ease-out"
