@@ -737,25 +737,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Rendimentos das caixinhas: uma linha só, embaixo dos números */}
+      {/* Rendimentos das caixinhas: uma linha só, embaixo dos números.
+          À esquerda (debaixo de Ganhos) o total ganhos + rendimentos; à direita os detalhes. */}
       {currentYield && currentYield.gross > 0 && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 py-2.5 border-t border-[#11310C]/10 text-[12px] text-[#11310C]/70">
-          <span className="flex items-center gap-1.5 font-semibold text-[#11310C]">
-            <span className="w-2 h-2 rounded-full" style={{ background: RENDIMENTO_COLOR }} /> Rendimentos
-          </span>
-          <span><strong className="text-[#11310C] tabular-nums">{formatCurrency(currentYield.dailyConta)}</strong> por dia útil</span>
-          <span>
-            <strong className="text-[#11310C] tabular-nums">{formatCurrency(currentYield.conta)}</strong>{' '}
-            {currentYield.isPartial ? 'previsto em' : 'em'} {MONTH_NAMES[new Date().getMonth()].toLowerCase()} ({formatCurrency(currentYield.toDateConta)} até hoje)
-          </span>
-          {salary && salary.amount > 0 && (
-            <span><strong className="text-[#11310C] tabular-nums">{((currentYield.conta / salary.amount) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong> do salário</span>
-          )}
           {timeRange === 'este-mes' && (
-            <span className="sm:ml-auto">
+            <span>
               Ganhos + rendimentos: <strong className="text-[#11310C] tabular-nums">{formatCurrency(displayIncome + currentYield.toDateConta)}</strong>
             </span>
           )}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 sm:ml-auto">
+            <span className="flex items-center gap-1.5 font-semibold text-[#11310C]">
+              <span className="w-2 h-2 rounded-full" style={{ background: RENDIMENTO_COLOR }} /> Rendimentos
+            </span>
+            <span><strong className="text-[#11310C] tabular-nums">{formatCurrency(currentYield.dailyConta)}</strong> por dia útil</span>
+            <span>
+              <strong className="text-[#11310C] tabular-nums">{formatCurrency(currentYield.conta)}</strong>{' '}
+              {currentYield.isPartial ? 'previsto em' : 'em'} {MONTH_NAMES[new Date().getMonth()].toLowerCase()} ({formatCurrency(currentYield.toDateConta)} até hoje)
+            </span>
+            {salary && salary.amount > 0 && (
+              <span><strong className="text-[#11310C] tabular-nums">{((currentYield.conta / salary.amount) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong> do salário</span>
+            )}
+          </div>
         </div>
       )}
       </div>
