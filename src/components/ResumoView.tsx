@@ -26,7 +26,6 @@ import {
 } from 'recharts';
 import { MonthSummaryData, SpreadsheetConnection, Investment, FinancialGoal } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { CaixinhasYield } from './CaixinhasYield';
 import type { BalanceAccountChanges } from '../lib/financeRepository';
 
 interface ResumoViewProps {
@@ -585,23 +584,6 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Rendimento das caixinhas com o CDI oficial */}
-      {balanceAccounts.length > 0 && lastRealRow && (
-        <CaixinhasYield
-          accounts={activeAccounts.map((a) => ({
-            id: a.id,
-            name: a.name,
-            pct: Number(String(splitAccountName(a.name).rate).replace(',', '.')) || 0,
-            balance: Number(lastRealRow.balances?.[a.name]) || 0,
-            balanceDate: brToIso(lastRealRow.date),
-            investedSince: a.investedSince,
-            lastDepositOn: a.lastDepositOn,
-            lastDepositAmount: a.lastDepositAmount,
-          }))}
-          onEditAccount={onUpdateAccount ? (id) => { const a = balanceAccounts.find((x) => x.id === id); if (a) openAccountForm(a); } : undefined}
-        />
-      )}
 
       {/* Monthly Total Money Growth Chart */}
       <div className="glass-card rounded-3xl p-6 border border-white/90 space-y-4">

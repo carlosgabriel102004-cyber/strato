@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   ReceiptText,
   Settings,
+  Coins,
 } from 'lucide-react';
 
 export interface TabItem {
@@ -30,6 +31,11 @@ export const TABS: TabItem[] = [
     label: 'Resumo',
     italicWord: 'Total',
     icon: PieChart,
+  },
+  {
+    id: 'rendimentos',
+    label: 'Rendimentos',
+    icon: Coins,
   },
   {
     id: 'investimentos',

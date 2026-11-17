@@ -59,7 +59,7 @@ export const BANK_LABEL: Record<Bank, string> = { nubank: 'Nubank', picpay: 'Pic
 
 const DAY = 86400000;
 const toDate = (iso: string) => new Date(`${iso}T12:00:00`);
-const daysBetween = (a: string, b: string) => Math.round((toDate(b).getTime() - toDate(a).getTime()) / DAY);
+export const daysBetween = (a: string, b: string) => Math.round((toDate(b).getTime() - toDate(a).getTime()) / DAY);
 const addDays = (iso: string, n: number) => new Date(toDate(iso).getTime() + n * DAY).toISOString().slice(0, 10);
 
 /** Faixa do IR pela idade do dinheiro (dias corridos). */
@@ -120,17 +120,17 @@ const MONTHS_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', '
 // Feriados nacionais (bolsa/CDI não corre). Fixos + móveis de 2026 e 2027.
 const FIXED_HOLIDAYS = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25'];
 const MOVABLE_HOLIDAYS = ['2026-02-16', '2026-02-17', '2026-04-03', '2026-06-04', '2027-02-08', '2027-02-09', '2027-03-26', '2027-05-27'];
-const isBusinessDay = (iso: string) => {
+export const isBusinessDay = (iso: string) => {
   const wd = toDate(iso).getDay();
   return wd !== 0 && wd !== 6 && !FIXED_HOLIDAYS.includes(iso.slice(5)) && !MOVABLE_HOLIDAYS.includes(iso);
 };
 
-const parseMonthLabel = (label: string) => {
+export const parseMonthLabel = (label: string) => {
   const [name, year] = (label || '').trim().toLowerCase().split(/\s+/);
   const m = MONTHS_PT.indexOf(name);
   return m >= 0 && Number(year) ? { y: Number(year), m: m + 1 } : null;
 };
-const brToIsoDate = (br: string) => {
+export const brToIsoDate = (br: string) => {
   if (/^\d{4}-\d{2}-\d{2}/.test(br)) return br.slice(0, 10);
   const [d, m, y] = (br || '').split('/');
   return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
@@ -193,6 +193,44 @@ export function monthYield(label: string, input: MonthYieldInput, cdi: CdiData, 
     out.net += full * (1 - ir);
     out.dailyGross += daily;
     out.dailyNet += daily * (1 - ir);
+  }
+  return out;
+}
+
+export interface AccountMonth {
+  toDate: number; // bruto já rendido no mês
+  full: number; // bruto do mês inteiro (com previsão dos dias que faltam)
+  daily: number; // bruto por dia útil com o último CDI
+  days: { date: string; value: number; projected: boolean }[]; // bruto por dia útil do mês
+}
+
+/** Rendimento bruto de um saldo num mês (AAAA-MM), dia a dia, com previsão até o fim do mês corrente. */
+export function accountMonth(balance: number, pct: number, cdi: CdiData, monthKey: string, today: string): AccountMonth {
+  const out: AccountMonth = { toDate: 0, full: 0, daily: 0, days: [] };
+  if (!(balance > 0) || !(pct > 0) || !cdi.daily.length) return out;
+  const last = cdi.daily[cdi.daily.length - 1];
+  let bal = balance;
+  for (const d of cdi.daily) {
+    if (!d.date.startsWith(monthKey)) continue;
+    const v = bal * (d.rate / 100) * (pct / 100);
+    out.days.push({ date: d.date, value: v, projected: false });
+    out.toDate += v;
+    bal += v;
+  }
+  out.daily = bal * (last.rate / 100) * (pct / 100);
+  out.full = out.toDate;
+  if (monthKey === today.slice(0, 7)) {
+    const [y, m] = monthKey.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    for (let day = 1; day <= lastDay; day++) {
+      const iso = `${monthKey}-${String(day).padStart(2, '0')}`;
+      if (iso > last.date && isBusinessDay(iso)) {
+        const v = bal * (last.rate / 100) * (pct / 100);
+        out.days.push({ date: iso, value: v, projected: true });
+        out.full += v;
+        bal += v;
+      }
+    }
   }
   return out;
 }

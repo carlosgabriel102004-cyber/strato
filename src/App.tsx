@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { ManualRegistrationModal } from './components/ManualRegistrationModal';
 import { DashboardView } from './components/DashboardView';
 import { ResumoView, BalanceAccountInfo } from './components/ResumoView';
+import { RendimentosView } from './components/RendimentosView';
 import { InvestimentosView } from './components/InvestimentosView';
 import { CartoesAssinaturasView } from './components/CartoesAssinaturasView';
 import { DividasView } from './components/DividasView';
@@ -37,7 +38,7 @@ import { getCardInvoicePaymentKey, getSubscriptionPaymentKey } from './utils/sub
 const getTabFromHash = (): string => {
   if (typeof window === 'undefined') return 'dashboard';
   const rawHash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
-  const validTabs = ['dashboard', 'resumo', 'investimentos', 'cartoes', 'dividas', 'metas', 'extrato', 'configuracoes'];
+  const validTabs = ['dashboard', 'resumo', 'rendimentos', 'investimentos', 'cartoes', 'dividas', 'metas', 'extrato', 'configuracoes'];
   return validTabs.includes(rawHash) ? rawHash : 'dashboard';
 };
 
@@ -755,6 +756,14 @@ export function App() {
                 onCreateAccount={async (name, extras) => { await createBalanceAccount(name, extras); await fetchLiveSheets(); }}
                 onUpdateAccount={async (id, changes) => { await updateBalanceAccount(id, changes); await fetchLiveSheets(); }}
                 onDeleteAccount={async (id) => { await deleteBalanceAccount(id); await fetchLiveSheets(); }}
+              />
+            )}
+
+            {activeTab === 'rendimentos' && (
+              <RendimentosView
+                balanceAccounts={balanceAccounts}
+                rows={currentMonthSummary.accountDetailsRows || []}
+                onUpdateAccount={async (id, changes) => { await updateBalanceAccount(id, changes); await fetchLiveSheets(); }}
               />
             )}
 
