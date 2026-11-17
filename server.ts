@@ -3,6 +3,7 @@ import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import quotesHandler from './api/quotes';
+import cdiHandler from './api/cdi';
 
 async function startServer() {
   const app = express();
@@ -12,6 +13,8 @@ async function startServer() {
 
   // Live prices (GOOGLEFINANCE) from the quotes sheet. Financial data itself lives in Supabase.
   app.get('/api/quotes', quotesHandler);
+  // CDI oficial do Banco Central, para o rendimento das caixinhas.
+  app.get('/api/cdi', cdiHandler);
 
   // Smart fallback generator for when Gemini is rate-limited or unavailable
   function generateSmartFallback(payload: any) {

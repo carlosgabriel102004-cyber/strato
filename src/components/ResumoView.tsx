@@ -26,6 +26,8 @@ import {
 } from 'recharts';
 import { MonthSummaryData, SpreadsheetConnection, Investment, FinancialGoal } from '../types';
 import { formatCurrency } from '../utils/formatters';
+import { CaixinhasYield } from './CaixinhasYield';
+import type { BalanceAccountChanges } from '../lib/financeRepository';
 
 interface ResumoViewProps {
   currentMonthData: MonthSummaryData;
@@ -36,12 +38,21 @@ interface ResumoViewProps {
   monthsList: string[];
   investments?: Investment[];
   goals?: FinancialGoal[];
-  balanceAccounts?: { id: string; name: string; archived?: boolean }[];
+  balanceAccounts?: BalanceAccountInfo[];
   onSaveBalances?: (date: string, values: Record<string, number | null>, previousDate?: string) => Promise<void>;
-  onCreateAccount?: (name: string) => Promise<void>;
-  onUpdateAccount?: (id: string, changes: { name?: string; archived?: boolean }) => Promise<void>;
+  onCreateAccount?: (name: string, extras?: BalanceAccountChanges) => Promise<void>;
+  onUpdateAccount?: (id: string, changes: BalanceAccountChanges) => Promise<void>;
   onDeleteAccount?: (id: string) => Promise<void>;
   actionRequest?: { type: 'balances' | 'accounts'; n: number } | null;
+}
+
+export interface BalanceAccountInfo {
+  id: string;
+  name: string;
+  archived?: boolean;
+  investedSince?: string | null;
+  lastDepositOn?: string | null;
+  lastDepositAmount?: number | null;
 }
 
 // "cofrinho pj nu (100%)" -> { base: 'cofrinho pj nu', rate: '100' }
@@ -152,7 +163,18 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
   actionRequest = null,
 }) => {
   const [accountsOpen, setAccountsOpen] = useState(false);
-  const [accountForm, setAccountForm] = useState<null | { id?: string; base: string; rate: string }>(null);
+  const [accountForm, setAccountForm] = useState<null | { id?: string; base: string; rate: string; investedSince?: string; lastDepositOn?: string; lastDepositAmount?: string }>(null);
+  const openAccountForm = (a: BalanceAccountInfo) => {
+    const { base, rate } = splitAccountName(a.name);
+    setAccountForm({
+      id: a.id,
+      base,
+      rate,
+      investedSince: a.investedSince || '',
+      lastDepositOn: a.lastDepositOn || '',
+      lastDepositAmount: a.lastDepositAmount ? moneyText(a.lastDepositAmount) : '',
+    });
+  };
   const [accountError, setAccountError] = useState<string | null>(null);
   const activeAccounts = balanceAccounts.filter((a) => !a.archived);
   const [includeAportes, setIncludeAportes] = useState<boolean>(false);
@@ -564,6 +586,23 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
         </div>
       </div>
 
+      {/* Rendimento das caixinhas com o CDI oficial */}
+      {balanceAccounts.length > 0 && lastRealRow && (
+        <CaixinhasYield
+          accounts={activeAccounts.map((a) => ({
+            id: a.id,
+            name: a.name,
+            pct: Number(String(splitAccountName(a.name).rate).replace(',', '.')) || 0,
+            balance: Number(lastRealRow.balances?.[a.name]) || 0,
+            balanceDate: brToIso(lastRealRow.date),
+            investedSince: a.investedSince,
+            lastDepositOn: a.lastDepositOn,
+            lastDepositAmount: a.lastDepositAmount,
+          }))}
+          onEditAccount={onUpdateAccount ? (id) => { const a = balanceAccounts.find((x) => x.id === id); if (a) openAccountForm(a); } : undefined}
+        />
+      )}
+
       {/* Monthly Total Money Growth Chart */}
       <div className="glass-card rounded-3xl p-6 border border-white/90 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-[#11310C]/10">
@@ -899,7 +938,7 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
                       <p className="text-[13px] font-medium text-[#11310C] truncate">{base}</p>
                       <p className="text-[11px] text-[#11310C]/55">{rate === 'variável' ? 'Rendimento variável' : `${rate}% do CDI`}{a.archived ? ' · arquivada' : ''}</p>
                     </div>
-                    <button title="Editar nome e CDI" onClick={() => setAccountForm({ id: a.id, base, rate })} className="p-2 rounded-lg text-[#11310C]/50 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button title="Editar conta" onClick={() => openAccountForm(a)} className="p-2 rounded-lg text-[#11310C]/50 hover:text-[#11310C] hover:bg-[#11310C]/5 cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button>
                     <button
                       title={a.archived ? 'Reativar' : 'Arquivar (some dos próximos lançamentos, mantém o histórico)'}
                       onClick={async () => { try { setAccountError(null); await onUpdateAccount!(a.id, { archived: !a.archived }); } catch (e: any) { setAccountError(e.message); } }}
@@ -935,16 +974,31 @@ export const ResumoView: React.FC<ResumoViewProps> = ({
       <QuickForm
         open={Boolean(accountForm)}
         title={accountForm?.id ? 'Editar conta' : 'Nova caixinha'}
-        initial={accountForm ? { base: accountForm.base, rate: accountForm.rate } : undefined}
+        initial={accountForm ? {
+          base: accountForm.base,
+          rate: accountForm.rate,
+          investedSince: accountForm.investedSince || '',
+          lastDepositOn: accountForm.lastDepositOn || '',
+          lastDepositAmount: accountForm.lastDepositAmount || '',
+        } : undefined}
         fields={[
           { name: 'base', label: 'Nome', required: true, placeholder: 'cofrinho inter' },
           { name: 'rate', label: '% do CDI', required: true, placeholder: '100', hint: 'Use 0 para conta sem rendimento, ou escreva "variável".' },
+          { name: 'investedSince', label: 'Aplicado desde', type: 'date', hint: 'Data do depósito mais antigo. Define a faixa do IR (22,5% até 6 meses … 15% depois de 2 anos).' },
+          { name: 'lastDepositOn', label: 'Último depósito', type: 'date', half: true },
+          { name: 'lastDepositAmount', label: 'Valor do último depósito', type: 'money', half: true, placeholder: '0,00', hint: 'Nos 30 dias seguintes, mostra o IOF que o banco desconta na tela.' },
         ]}
         onClose={() => setAccountForm(null)}
         onSubmit={async (v) => {
           const name = joinAccountName(v.base, v.rate);
-          if (accountForm?.id) await onUpdateAccount!(accountForm.id, { name });
-          else await onCreateAccount!(name);
+          const amount = (v.lastDepositAmount || '').trim();
+          const extras: BalanceAccountChanges = {
+            investedSince: v.investedSince || null,
+            lastDepositOn: v.lastDepositOn || null,
+            lastDepositAmount: amount ? parseMoney(amount) : null,
+          };
+          if (accountForm?.id) await onUpdateAccount!(accountForm.id, { name, ...extras });
+          else await onCreateAccount!(name, extras);
         }}
       />
 

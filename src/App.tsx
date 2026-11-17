@@ -4,7 +4,7 @@ import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ManualRegistrationModal } from './components/ManualRegistrationModal';
 import { DashboardView } from './components/DashboardView';
-import { ResumoView } from './components/ResumoView';
+import { ResumoView, BalanceAccountInfo } from './components/ResumoView';
 import { InvestimentosView } from './components/InvestimentosView';
 import { CartoesAssinaturasView } from './components/CartoesAssinaturasView';
 import { DividasView } from './components/DividasView';
@@ -160,7 +160,7 @@ export function App() {
   );
   const [usdRate, setUsdRate] = useState<number>(5.50);
   const [exchanges, setExchanges] = useState<CurrencyExchange[]>([]);
-  const [balanceAccounts, setBalanceAccounts] = useState<{ id: string; name: string; archived?: boolean }[]>([]);
+  const [balanceAccounts, setBalanceAccounts] = useState<BalanceAccountInfo[]>([]);
   const [activeForm, setActiveForm] = useState<null | 'exchange' | 'stock' | 'debtor' | 'card'>(null);
   const [subscriptionRequest, setSubscriptionRequest] = useState(0);
   const [goalRequest, setGoalRequest] = useState(0);
@@ -751,7 +751,7 @@ export function App() {
                   await saveBalanceSnapshot(date, values, previousDate);
                   await fetchLiveSheets();
                 }}
-                onCreateAccount={async (name) => { await createBalanceAccount(name); await fetchLiveSheets(); }}
+                onCreateAccount={async (name, extras) => { await createBalanceAccount(name, extras); await fetchLiveSheets(); }}
                 onUpdateAccount={async (id, changes) => { await updateBalanceAccount(id, changes); await fetchLiveSheets(); }}
                 onDeleteAccount={async (id) => { await deleteBalanceAccount(id); await fetchLiveSheets(); }}
               />

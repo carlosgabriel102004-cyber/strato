@@ -45,7 +45,10 @@ create table public.balance_accounts (
   user_id uuid references auth.users(id) on delete cascade default auth.uid(),
   name text not null, -- e.g. 'cofrinho pj nu (100%)'; the % is the CDI rate used in projections
   sort_order int not null default 0,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  invested_since date,          -- depósito mais antigo: define a faixa do IR
+  last_deposit_on date,         -- último depósito: IOF provisório nos 30 dias seguintes
+  last_deposit_amount numeric(14,2)
 );
 
 create table public.balance_snapshots (

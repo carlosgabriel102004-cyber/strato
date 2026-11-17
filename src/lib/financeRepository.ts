@@ -94,7 +94,14 @@ export async function loadFinanceData() {
   applySharedSubscriptionShares(data);
   const autoPayIds = new Set(cards.filter((c) => c.auto_pay).map((c) => String(c.id)));
   data.cards = (data.cards || []).map((card: any) => ({ ...card, autoPay: autoPayIds.has(String(card.id)) }));
-  data.balanceAccounts = accounts.map((a: any) => ({ id: String(a.id), name: str(a.name), archived: Boolean(a.archived) }));
+  data.balanceAccounts = accounts.map((a: any) => ({
+    id: String(a.id),
+    name: str(a.name),
+    archived: Boolean(a.archived),
+    investedSince: a.invested_since || null,
+    lastDepositOn: a.last_deposit_on || null,
+    lastDepositAmount: a.last_deposit_amount === null || a.last_deposit_amount === undefined ? null : Number(a.last_deposit_amount),
+  }));
   data.investmentPositions = investments.map((i: any) => ({ id: String(i.id), ticker: str(i.ticker), shares: Number(i.shares) || 0, averagePriceUsd: Number(i.average_price_usd) || 0 }));
   data.exchanges = exchanges.map((e: any) => ({
     id: String(e.id),
@@ -266,13 +273,33 @@ export async function saveBalanceSnapshot(date: string, values: Record<string, n
   if (error) throw new Error(`Não foi possível salvar os saldos: ${error.message}`);
 }
 
-export async function createBalanceAccount(name: string) {
-  const { error } = await supabase.from('balance_accounts').insert({ name, sort_order: nextOrder() });
+export interface BalanceAccountChanges {
+  name?: string;
+  archived?: boolean;
+  investedSince?: string | null;
+  lastDepositOn?: string | null;
+  lastDepositAmount?: number | null;
+}
+
+export async function createBalanceAccount(name: string, extras: Omit<BalanceAccountChanges, 'name' | 'archived'> = {}) {
+  const { error } = await supabase.from('balance_accounts').insert({
+    name,
+    sort_order: nextOrder(),
+    invested_since: extras.investedSince ?? null,
+    last_deposit_on: extras.lastDepositOn ?? null,
+    last_deposit_amount: extras.lastDepositAmount ?? null,
+  });
   if (error) throw new Error(`Não foi possível criar a conta: ${error.message}`);
 }
 
-export async function updateBalanceAccount(id: string, changes: { name?: string; archived?: boolean }) {
-  const { error } = await supabase.from('balance_accounts').update(changes).eq('id', id);
+export async function updateBalanceAccount(id: string, changes: BalanceAccountChanges) {
+  const row: Record<string, unknown> = {};
+  if (changes.name !== undefined) row.name = changes.name;
+  if (changes.archived !== undefined) row.archived = changes.archived;
+  if (changes.investedSince !== undefined) row.invested_since = changes.investedSince;
+  if (changes.lastDepositOn !== undefined) row.last_deposit_on = changes.lastDepositOn;
+  if (changes.lastDepositAmount !== undefined) row.last_deposit_amount = changes.lastDepositAmount;
+  const { error } = await supabase.from('balance_accounts').update(row).eq('id', id);
   if (error) throw new Error(`Não foi possível atualizar a conta: ${error.message}`);
 }
 
