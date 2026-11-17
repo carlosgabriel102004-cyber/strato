@@ -1,7 +1,7 @@
 import { FilterMenu } from './FilterMenu';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useCdi } from '../lib/useCdi';
-import { monthYield } from '../lib/cdiYield';
+import { monthYield, isBusinessDay } from '../lib/cdiYield';
 import { motion } from 'motion/react';
 import {
   TrendingUp,
@@ -186,6 +186,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   balanceAccounts = [],
 }) => {
   const { cdi } = useCdi();
+  const [includeYields, setIncludeYields] = useState<boolean>(() => {
+    try { return localStorage.getItem('strato:somarRendimentos') === '1'; } catch { return false; }
+  });
+  const toggleYields = () => setIncludeYields((v) => {
+    try { localStorage.setItem('strato:somarRendimentos', v ? '0' : '1'); } catch { /* sem memória */ }
+    return !v;
+  });
   const todayIso = new Date().toLocaleDateString('sv-SE');
   const todayMonthLabel = `${MONTH_NAMES[new Date().getMonth()]} ${new Date().getFullYear()}`;
   const yieldInput = useMemo(() => {
@@ -508,13 +515,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         Gastos: mExpenses,
         Sobra: mLeftover,
         Rendimentos: (() => { const y = yieldOf(m); return y ? Math.round(y.conta * 100) / 100 : undefined; })(),
+        ...(includeYields ? (() => {
+          const y = yieldOf(m);
+          const add = y ? (m === todayMonthLabel ? y.toDateConta : y.conta) : 0;
+          return { Renda: mIncome + add, Sobra: mLeftover + add };
+        })() : {}),
         isCardCycleMonth,
         activeCardsInCycle: cardCycleInfo.byMonth[m] || [],
         subscriptionsTotal,
         subscriptionNames,
       };
     });
-  }, [selectedChartMonthsKeys, effectiveMonthsData, recentTransactions, cardCycleInfo, subscriptions, creditCards, cdi, yieldInput]);
+  }, [selectedChartMonthsKeys, effectiveMonthsData, recentTransactions, cardCycleInfo, subscriptions, creditCards, cdi, yieldInput, includeYields]);
 
   // Date parsing helper for DD/MM/YYYY or YYYY-MM-DD
   const parseDateMs = (dateStr: string): number => {
@@ -622,6 +634,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     displayLeftover = displayIncome - displayExpenses;
   }
 
+  // Rendimentos das caixinhas no período (o que já caiu na conta)
+  const periodYield = (() => {
+    if (!cdi || !currentYield) return 0;
+    const monthValue = (k: string) => { const y = yieldOf(k); return y ? (k === todayMonthLabel ? y.toDateConta : y.conta) : 0; };
+    const businessDaysBetween = (startIso: string, endIso: string) => {
+      let n = 0;
+      for (let t = new Date(`${startIso}T12:00:00`); t.toISOString().slice(0, 10) <= endIso && t.toISOString().slice(0, 10) <= todayIso; t = new Date(t.getTime() + 86400000)) {
+        if (isBusinessDay(t.toISOString().slice(0, 10))) n++;
+      }
+      return n;
+    };
+    if (timeRange === 'este-mes') return currentYield.toDateConta;
+    if (timeRange === '3-meses') return realMonthsKeys.slice(-3).reduce((sum, k) => sum + monthValue(k), 0);
+    if (timeRange === 'ano') return realMonthsKeys.reduce((sum, k) => sum + monthValue(k), 0);
+    if (timeRange === 'semana') return currentYield.dailyConta * businessDaysBetween(new Date(Date.now() - 6 * 86400000).toLocaleDateString('sv-SE'), todayIso);
+    if (timeRange === 'personalizado') return currentYield.dailyConta * businessDaysBetween(customRange.start, customRange.end);
+    return 0;
+  })();
+  const incomeWithoutYields = displayIncome;
+  if (includeYields && periodYield > 0) {
+    displayIncome += periodYield;
+    displayLeftover += periodYield;
+  }
+
   // Tax Calculations
   const taxPct = taxSettings?.percentage || 0;
   const isTaxActive = taxSettings?.enabled && taxPct > 0;
@@ -652,6 +688,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onChange={(id) => setTimeRange(id as any)}
             onCustom={() => { setTimeRange('personalizado'); setIsCalendarModalOpen(true); }}
           />
+          <button
+            type="button"
+            role="switch"
+            aria-checked={includeYields}
+            onClick={toggleYields}
+            title="Soma os rendimentos das caixinhas aos ganhos e à sobra"
+            className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-[12.5px] font-medium text-[#11310C]/75 hover:text-[#11310C] hover:bg-[#11310C]/5 transition-colors cursor-pointer"
+          >
+            <span className={`relative w-7 h-4 rounded-full transition-colors ${includeYields ? '' : 'bg-[#11310C]/20'}`} style={includeYields ? { background: RENDIMENTO_COLOR } : undefined}>
+              <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${includeYields ? 'translate-x-3' : ''}`} />
+            </span>
+            Somar rendimentos
+          </button>
         </div>
       </div>
 
@@ -673,7 +722,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#C4C240]/25 text-[#11310C]">
               Entradas
             </span>
-            <span className="text-[11px] font-medium text-[#11310C]/60">período selecionado</span>
+            <span className="text-[11px] font-medium text-[#11310C]/60">
+              {includeYields && periodYield > 0 ? `${formatCurrency(incomeWithoutYields)} + ${formatCurrency(periodYield)} de rendimentos` : 'período selecionado'}
+            </span>
           </div>
         </div>
 
@@ -741,9 +792,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           À esquerda (debaixo de Ganhos) o total ganhos + rendimentos; à direita os detalhes. */}
       {currentYield && currentYield.gross > 0 && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 py-2.5 border-t border-[#11310C]/10 text-[12px] text-[#11310C]/70">
-          {timeRange === 'este-mes' && (
+          {timeRange === 'este-mes' && !includeYields && (
             <span>
-              Ganhos + rendimentos: <strong className="text-[#11310C] tabular-nums">{formatCurrency(displayIncome + currentYield.toDateConta)}</strong>
+              Ganhos + rendimentos: <strong className="text-[#11310C] tabular-nums">{formatCurrency(incomeWithoutYields + currentYield.toDateConta)}</strong>
             </span>
           )}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 sm:ml-auto">
