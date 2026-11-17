@@ -15,10 +15,23 @@ interface Props {
   onUpdateAccount?: (id: string, changes: BalanceAccountChanges) => Promise<void>;
 }
 
-// Cores das marcas puxadas para a paleta do Strato: mesmo tom de cada banco, mais terroso e menos saturado.
-const BANK_COLOR: Record<Bank, string> = { nubank: '#6A4C86', picpay: '#3F7F4F', mercadopago: '#3D7393', outro: '#11310C' };
-const BANK_ORDER: Bank[] = ['nubank', 'picpay', 'mercadopago', 'outro'];
-const bankName = (b: Bank) => BANK_LABEL[b] || 'Outros';
+// Uma cor por origem, dentro da paleta do Strato: o verde e o verde-claro da marca
+// para o PicPay (PJ e PF), e um roxo e um azul feitos no mesmo tom para Nubank e Mercado Pago.
+interface Series { key: string; color: string }
+const SERIES: Series[] = [
+  { key: 'Nubank', color: '#A377CF' },
+  { key: 'PicPay PJ', color: '#11310C' },
+  { key: 'PicPay PF', color: '#C4C240' },
+  { key: 'PicPay', color: '#11310C' },
+  { key: 'Mercado Pago', color: '#54A6C9' },
+  { key: 'Outros', color: '#E13513' },
+];
+const seriesOf = (name: string, bank: Bank): Series => {
+  const n = name.toLowerCase();
+  let key = BANK_LABEL[bank] || 'Outros';
+  if (bank === 'picpay') key = /\bpf\b/.test(n) ? 'PicPay PF' : /\bpj\b/.test(n) ? 'PicPay PJ' : 'PicPay';
+  return SERIES.find((x) => x.key === key)!;
+};
 const pctOf = (name: string) => {
   const m = name.match(/\((\d+(?:[.,]\d+)?)%\)\s*$/);
   return m ? Number(m[1].replace(',', '.')) : 0;
@@ -69,6 +82,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
       ...a,
       pct: pctOf(a.name),
       bank: bankOf(a.name),
+      series: seriesOf(a.name, bankOf(a.name)),
       ir: a.investedSince ? irRateFor(daysBetween(a.investedSince, today)) : 0.225,
     })),
     [balanceAccounts, today]
@@ -97,14 +111,15 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
     }),
     { montante: 0, daily: 0, month: 0, toDate: 0 }
   );
-  const banksPresent = BANK_ORDER.filter((b) => now.some((x) => x.acc.bank === b));
+  const seriesPresent = SERIES.filter((sr) => now.some((x) => x.acc.series.key === sr.key));
+  const banksPresent: Bank[] = Array.from(new Set<Bank>(now.map((x) => x.acc.bank)));
 
   // Dia a dia do mês corrente, empilhado por banco
   const dailyData = useMemo(() => {
     const byDate = new Map<string, any>();
     now.forEach((x) => x.month.days.forEach((d) => {
       const row = byDate.get(d.date) || { date: d.date, label: d.date.slice(8, 10), title: `${isoToBr(d.date)} · CDI do dia`, projected: d.projected };
-      const key = bankName(x.acc.bank);
+      const key = x.acc.series.key;
       row[key] = (row[key] || 0) + k(d.value, x.acc.ir);
       byDate.set(d.date, row);
     }));
@@ -127,13 +142,13 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
       accounts.forEach((a) => {
         const bal = Number(r.balances?.[a.name]) || 0;
         const v = accountMonth(bal, a.pct, cdi, key, today).full;
-        if (v > 0) row[bankName(a.bank)] = (row[bankName(a.bank)] || 0) + k(v, a.ir);
+        if (v > 0) row[a.series.key] = (row[a.series.key] || 0) + k(v, a.ir);
       });
       out.push(row);
     });
     if (lastRow && !seen.has(monthKey)) {
       const row: any = { key: monthKey, label: `${MONTHS_SHORT[Number(monthKey.slice(5)) - 1]}/${monthKey.slice(2, 4)}`, title: `${monthName} (previsto)`, projected: true };
-      now.forEach((x) => { row[bankName(x.acc.bank)] = (row[bankName(x.acc.bank)] || 0) + k(x.month.full, x.acc.ir); });
+      now.forEach((x) => { row[x.acc.series.key] = (row[x.acc.series.key] || 0) + k(x.month.full, x.acc.ir); });
       out.push(row);
     }
     return out.slice(-12);
@@ -154,8 +169,8 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
 
   const legend = (
     <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-[#11310C]">
-      {banksPresent.map((b) => (
-        <span key={b} className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: BANK_COLOR[b] }} />{bankName(b)}</span>
+      {seriesPresent.map((sr) => (
+        <span key={sr.key} className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: sr.color }} />{sr.key}</span>
       ))}
     </div>
   );
@@ -209,8 +224,8 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#11310C' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#11310C' }} tickFormatter={(v) => `R$${num(v, 0)}`} />
                   <Tooltip content={<ChartTip mode={mode} />} cursor={{ fill: '#11310C', fillOpacity: 0.05 }} />
-                  {banksPresent.map((b, i) => (
-                    <Bar key={b} dataKey={bankName(b)} stackId="d" fill={BANK_COLOR[b]} radius={i === banksPresent.length - 1 ? [4, 4, 0, 0] : 0}>
+                  {seriesPresent.map((sr, i) => (
+                    <Bar key={sr.key} dataKey={sr.key} stackId="d" fill={sr.color} radius={i === seriesPresent.length - 1 ? [4, 4, 0, 0] : 0}>
                       {dailyData.map((d) => <Cell key={d.date} fillOpacity={d.projected ? 0.3 : 1} />)}
                     </Bar>
                   ))}
@@ -235,8 +250,8 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
                     <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#11310C' }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#11310C' }} tickFormatter={(v) => `R$${num(v, 0)}`} />
                     <Tooltip content={<ChartTip mode={mode} />} cursor={{ fill: '#11310C', fillOpacity: 0.05 }} />
-                    {banksPresent.map((b, i) => (
-                      <Bar key={b} dataKey={bankName(b)} stackId="m" fill={BANK_COLOR[b]} radius={i === banksPresent.length - 1 ? [4, 4, 0, 0] : 0}>
+                    {seriesPresent.map((sr, i) => (
+                      <Bar key={sr.key} dataKey={sr.key} stackId="m" fill={sr.color} radius={i === seriesPresent.length - 1 ? [4, 4, 0, 0] : 0}>
                         {monthlyData.map((d) => <Cell key={d.key} fillOpacity={d.projected ? 0.55 : 1} />)}
                       </Bar>
                     ))}
@@ -260,7 +275,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
                         <span className="tabular-nums font-semibold text-[#11310C] shrink-0">{formatCurrency(m)}<span className="text-[11px] font-normal text-[#11310C]/70">/mês</span></span>
                       </div>
                       <div className="mt-1.5 h-2 rounded-full bg-[#11310C]/6 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${(x.y.balanceEstimate / maxMontante) * 100}%`, background: BANK_COLOR[x.acc.bank] }} />
+                        <div className="h-full rounded-full" style={{ width: `${(x.y.balanceEstimate / maxMontante) * 100}%`, background: x.acc.series.color }} />
                       </div>
                       <div className="flex justify-between gap-3 mt-1 text-[11px] text-[#11310C]/70 tabular-nums">
                         <span>{formatCurrency(x.y.balanceEstimate)} · {num(x.acc.pct, 0)}% do CDI</span>
@@ -293,7 +308,7 @@ export const RendimentosView: React.FC<Props> = ({ balanceAccounts, rows, onUpda
                   {ranking.map((x) => (
                     <tr key={x.acc.id} className="align-top">
                       <td className="px-5 py-3">
-                        <div className="flex items-center gap-2 font-medium text-[#11310C]"><span className="w-2 h-2 rounded-full" style={{ background: BANK_COLOR[x.acc.bank] }} />{baseName(x.acc.name)}</div>
+                        <div className="flex items-center gap-2 font-medium text-[#11310C]"><span className="w-2 h-2 rounded-full" style={{ background: x.acc.series.color }} />{baseName(x.acc.name)}</div>
                         <div className="text-[11px] text-[#11310C]/70 pl-4">{[BANK_LABEL[x.acc.bank], `${num(x.acc.pct, 0)}% do CDI`].filter(Boolean).join(' · ')}</div>
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">{formatCurrency(x.y.balanceEstimate)}</td>
