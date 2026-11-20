@@ -301,7 +301,7 @@ export const ManualRegistrationModal: React.FC<ManualRegistrationModalProps> = (
                   <span>Salvando...</span>
                 ) : (
                   <>
-                    <FileSpreadsheet className="w-4 h-4 text-[#11310C]" />
+                    <FileSpreadsheet className="w-4 h-4 text-[#FAFBF6]" />
                     <span>Salvar Lançamento</span>
                   </>
                 )}
