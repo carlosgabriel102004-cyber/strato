@@ -556,11 +556,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   );
 
   // Group installment transactions so multi-installment purchases (e.g. Galaxy Tab 1/12 .. 12/12) appear as 1 grouped item with the first installment date
+  // Últimas movimentações: o que foi lançado por último (pela data da compra), em qualquer mês —
+  // uma compra no cartão aparece aqui mesmo que a fatura caia no mês seguinte.
+  // Os números do dashboard continuam seguindo o mês em que o dinheiro sai do caixa.
+  const latestTransactions = React.useMemo(() => {
+    const endOfToday = new Date(`${todayIso}T23:59:59`).getTime();
+    return (recentTransactions || [])
+      .filter((tx) => { const ms = parseDateMs(tx.date); return ms > 0 && ms <= endOfToday; })
+      .sort((a, b) => parseDateMs(b.date) - parseDateMs(a.date));
+  }, [recentTransactions, todayIso]);
+
   const groupedTransactions = React.useMemo(() => {
     const map = new Map<string, Transaction & { minDateMs: number }>();
     const singles: Transaction[] = [];
 
-    for (const tx of sortedTransactions) {
+    for (const tx of latestTransactions) {
       const desc = (tx.description || '').trim();
       const match = desc.match(/^(.*?)\s*\(?(\d+)\/(\d+)\)?$/i);
       if (match) {
@@ -590,7 +600,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     const merged = [...singles, ...Array.from(map.values()).map(({ minDateMs, ...rest }) => rest)];
     return merged.sort((a, b) => parseDateMs(b.date) - parseDateMs(a.date));
-  }, [sortedTransactions]);
+  }, [latestTransactions]);
 
   // Dynamic values calculated based on timeRange filter
   let displayIncome = currentMonthData.totalIncome;
