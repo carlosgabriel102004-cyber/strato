@@ -723,7 +723,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Entradas
             </span>
             <span className="text-[11px] font-medium text-[#11310C]/60">
-              {includeYields && periodYield > 0 ? `${formatCurrency(incomeWithoutYields)} + ${formatCurrency(periodYield)} de rendimentos` : 'período selecionado'}
+              período selecionado
             </span>
           </div>
         </div>
@@ -792,7 +792,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           À esquerda (debaixo de Ganhos) o total ganhos + rendimentos; à direita os detalhes. */}
       {currentYield && currentYield.gross > 0 && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 py-2.5 border-t border-[#11310C]/10 text-[12px] text-[#11310C]/70">
-          {timeRange === 'este-mes' && !includeYields && (
+          {includeYields && periodYield > 0 ? (
+            <span>
+              Ganhos <strong className="text-[#11310C] tabular-nums">{formatCurrency(incomeWithoutYields)}</strong> + <strong className="text-[#11310C] tabular-nums">{formatCurrency(periodYield)}</strong> de rendimentos
+            </span>
+          ) : timeRange === 'este-mes' && (
             <span>
               Ganhos + rendimentos: <strong className="text-[#11310C] tabular-nums">{formatCurrency(incomeWithoutYields + currentYield.toDateConta)}</strong>
             </span>
